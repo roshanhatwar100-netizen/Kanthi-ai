@@ -1,0 +1,166 @@
+{
+  "boys": [
+    {
+      "file": "boys/indian.jpg",
+      "id": "indian",
+      "region": "India"
+    },
+    {
+      "file": "boys/european.jpg",
+      "id": "european",
+      "region": "Italy"
+    },
+    {
+      "file": "boys/latin.jpg",
+      "id": "latin",
+      "region": "Brazil"
+    },
+    {
+      "file": "boys/african.jpg",
+      "id": "african",
+      "region": "Nigeria"
+    },
+    {
+      "file": "boys/asian.jpg",
+      "id": "asian",
+      "region": "South Korea"
+    },
+    {
+      "file": "boys/middleeastern.jpg",
+      "id": "middleeastern",
+      "region": "UAE / Arab"
+    },
+    {
+      "file": "boys/chinese.jpg",
+      "id": "chinese",
+      "region": "China"
+    },
+    {
+      "file": "boys/japanese.jpg",
+      "id": "japanese",
+      "region": "Japan"
+    },
+    {
+      "file": "boys/american.jpg",
+      "id": "american",
+      "region": "USA"
+    },
+    {
+      "file": "boys/russian.jpg",
+      "id": "russian",
+      "region": "Russia"
+    }
+  ],
+  "created": "2026-10-18",
+  "description": "KANTHI AI preset characters - boys and girls from top 20 countries",
+  "girls": [
+    {
+      "file": "girls/indian.jpg",
+      "id": "indian",
+      "region": "India"
+    },
+    {
+      "file": "girls/middleeastern.jpg",
+      "id": "middleeastern",
+      "region": "Middle East"
+    },
+    {
+      "file": "girls/african.jpg",
+      "id": "african",
+      "region": "Africa"
+    },
+    {
+      "file": "girls/russian.jpg",
+      "id": "russian",
+      "region": "Russia"
+    },
+    {
+      "file": "girls/asian.jpg",
+      "id": "asian",
+      "region": "East Asia"
+    },
+    {
+      "file": "girls/scandinavian.jpg",
+      "id": "scandinavian",
+      "region": "Scandinavia"
+    },
+    {
+      "file": "girls/latina.jpg",
+      "id": "latina",
+      "region": "Latin America"
+    },
+    {
+      "file": "girls/chinese.jpg",
+      "id": "chinese",
+      "region": "China"
+    },
+    {
+      "file": "girls/japanese.jpg",
+      "id": "japanese",
+      "region": "Japan"
+    },
+    {
+      "file": "girls/american.jpg",
+      "id": "american",
+      "region": "USA"
+    },
+    {
+      "file": "girls/french.jpg",
+      "id": "french",
+      "region": "France"
+    },
+    {
+      "file": "girls/german.jpg",
+      "id": "german",
+      "region": "Germany"
+    },
+    {
+      "file": "girls/british.jpg",
+      "id": "british",
+      "region": "UK"
+    },
+    {
+      "file": "girls/spanish.jpg",
+      "id": "spanish",
+      "region": "Spain"
+    },
+    {
+      "file": "girls/turkish.jpg",
+      "id": "turkish",
+      "region": "Turkey"
+    }
+  ],
+  "note": "Voice training in native languages + English + Hindi pending - requires multi-voice TTS with regional accents (not available in current free tools)",
+  "version": "2.2",
+  "trained": [
+    {
+      "id": "yuki",
+      "file": "trained/yuki.jpg",
+      "name": "Yuki",
+      "trigger": "yuki character",
+      "description": "Serene East Asian mystic, purple kimono with gold constellations",
+      "trained_date": "2026-10-15",
+      "weights": "pytorch_lora_weights.safetensors (12.8 MB)",
+      "status": "trained"
+    },
+    {
+      "id": "veera",
+      "file": "trained/veera.jpg",
+      "name": "Veera",
+      "trigger": "veera character",
+      "description": "Fierce South Asian warrior, gold sun emblem armor",
+      "trained_date": "2026-10-13",
+      "weights": "pytorch_lora_weights.safetensors (12.8 MB)",
+      "status": "trained"
+    },
+    {
+      "id": "sofia",
+      "file": "trained/sofia.jpg",
+      "name": "Sofia",
+      "trigger": "sofia character",
+      "description": "European ballerina, auburn hair in ballet bun with gold hairpins, burgundy wrap dress with gold piping",
+      "trained_date": null,
+      "status": "training queued (bundle ready 2026-10-21)"
+    }
+  ]
+}

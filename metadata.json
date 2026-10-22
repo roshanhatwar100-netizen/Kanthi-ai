@@ -1,0 +1,6 @@
+{
+  "name": "KANTHI AI",
+  "description": "Turn imagination into creation. Production-grade AI creative platform for generating stunning images, characters, anime, and visual worlds.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

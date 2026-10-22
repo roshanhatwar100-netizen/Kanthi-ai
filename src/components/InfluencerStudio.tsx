@@ -1,0 +1,533 @@
+import React, { useState } from 'react';
+import {
+  Sparkles, User, Mic, Image as ImageIcon, FileText,
+  Loader2, Download, RefreshCw, ChevronRight
+} from 'lucide-react';
+import { apiFetch } from '../api';
+import { useAuth } from '../context/AuthContext';
+
+interface InfluencerStudioProps {
+  notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
+  onOpenPricing?: () => void;
+}
+
+interface Character {
+  id: string;
+  region: string;
+  gender: 'girls' | 'boys';
+  file: string;
+}
+
+const CHARACTERS: Character[] = [
+  // Girls
+  { id: 'indian', region: 'India', gender: 'girls', file: '/characters/girls/indian.jpg' },
+  { id: 'chinese', region: 'China', gender: 'girls', file: '/characters/girls/chinese.jpg' },
+  { id: 'japanese', region: 'Japan', gender: 'girls', file: '/characters/girls/japanese.jpg' },
+  { id: 'american', region: 'USA', gender: 'girls', file: '/characters/girls/american.jpg' },
+  { id: 'french', region: 'France', gender: 'girls', file: '/characters/girls/french.jpg' },
+  { id: 'german', region: 'Germany', gender: 'girls', file: '/characters/girls/german.jpg' },
+  { id: 'british', region: 'UK', gender: 'girls', file: '/characters/girls/british.jpg' },
+  { id: 'spanish', region: 'Spain', gender: 'girls', file: '/characters/girls/spanish.jpg' },
+  { id: 'turkish', region: 'Turkey', gender: 'girls', file: '/characters/girls/turkish.jpg' },
+  { id: 'egyptian', region: 'Egypt', gender: 'girls', file: '/characters/girls/egyptian.jpg' },
+  { id: 'greek', region: 'Greece', gender: 'girls', file: '/characters/girls/greek.jpg' },
+  { id: 'mexican', region: 'Mexico', gender: 'girls', file: '/characters/girls/mexican.jpg' },
+  { id: 'russian', region: 'Russia', gender: 'girls', file: '/characters/girls/russian.jpg' },
+  { id: 'middleeastern', region: 'Middle East', gender: 'girls', file: '/characters/girls/middleeastern.jpg' },
+  { id: 'african', region: 'Africa', gender: 'girls', file: '/characters/girls/african.jpg' },
+  { id: 'asian', region: 'East Asia', gender: 'girls', file: '/characters/girls/asian.jpg' },
+  { id: 'scandinavian', region: 'Scandinavia', gender: 'girls', file: '/characters/girls/scandinavian.jpg' },
+  { id: 'latina', region: 'Latin America', gender: 'girls', file: '/characters/girls/latina.jpg' },
+  // Boys
+  { id: 'indian', region: 'India', gender: 'boys', file: '/characters/boys/indian.jpg' },
+  { id: 'european', region: 'Italy', gender: 'boys', file: '/characters/boys/european.jpg' },
+  { id: 'latin', region: 'Brazil', gender: 'boys', file: '/characters/boys/latin.jpg' },
+  { id: 'african', region: 'Nigeria', gender: 'boys', file: '/characters/boys/african.jpg' },
+  { id: 'asian', region: 'South Korea', gender: 'boys', file: '/characters/boys/asian.jpg' },
+  { id: 'middleeastern', region: 'UAE', gender: 'boys', file: '/characters/boys/middleeastern.jpg' },
+  { id: 'chinese', region: 'China', gender: 'boys', file: '/characters/boys/chinese.jpg' },
+  { id: 'japanese', region: 'Japan', gender: 'boys', file: '/characters/boys/japanese.jpg' },
+  { id: 'american', region: 'USA', gender: 'boys', file: '/characters/boys/american.jpg' },
+  { id: 'russian', region: 'Russia', gender: 'boys', file: '/characters/boys/russian.jpg' },
+];
+
+const NICHES = [
+  'Lifestyle & Fashion',
+  'AI & Technology',
+  'Health & Wellness',
+  'Travel & Culture',
+  'Food & Cooking',
+  'Fitness & Sports',
+  'Music & Entertainment',
+  'Education & Facts',
+];
+
+const LANGUAGES = [
+  { code: 'hinglish', label: 'Hinglish (Hindi + English)' },
+  { code: 'english', label: 'English' },
+  { code: 'hindi', label: 'Hindi' },
+];
+
+// From Roshan's Prompt Pack PDF — human-like actions & expressions
+const ACTIONS = [
+  'Laughing while looking down at phone',
+  'Mid-step walking toward camera, hair moving',
+  'Tying shoelaces before a run',
+  'Stirring coffee and glancing at camera',
+  'Pointing at whiteboard while explaining',
+  'Unboxing product with surprised smile',
+  'Adjusting earphones, mid-conversation',
+  'Holding up product to the lens',
+  'Waving hello at camera',
+  'Sitting cross-legged with laptop',
+];
+
+const EXPRESSIONS = [
+  'Genuine smile (eyes crinkling)',
+  'Curious head tilt, raised eyebrow',
+  'Shy smile, looking away',
+  'Excited surprise, mouth open',
+  'Calm confident gaze',
+  'Thoughtful, finger on chin',
+  'Laugh with eyes closed',
+];
+
+const VIDEO_STYLES = [
+  { id: 'talking', label: 'Talking Head', prompt: 'looks into the camera and speaks naturally, subtle head nods, blinks every 3-4 seconds, small eyebrow raises for emphasis, natural hand gestures at chest level, soft breathing in shoulders, handheld slight sway, vertical 9:16, realistic lip sync' },
+  { id: 'walking', label: 'Walking / Lifestyle', prompt: 'walks toward the camera on a sunny street, hair and dress moving in breeze, smiles and glances sideways, handheld tracking shot, 24fps cinematic, natural motion blur, 9:16' },
+  { id: 'product', label: 'Product Showcase', prompt: 'close-up hands picking up product, turning to show label, then looks at camera and smiles, soft studio light, slow push-in, crisp detail, 9:16' },
+  { id: 'gym', label: 'Gym / Fitness', prompt: 'finishes a set, exhales, wipes sweat with towel, laughs at camera, handheld gym footage, realistic sweat sheen, 9:16' },
+];
+
+const NICHE_PACKS: Record<string, string> = {
+  'Fitness & Sports': 'athletic build, light sweat sheen, messy ponytail with flyaways, black sports set, gym mirror selfie, iPhone photo style',
+  'Lifestyle & Fashion': 'linen co-ord set, market street walk, iced coffee in hand, wind in hair, 35mm film look, candid laugh',
+  'Travel & Culture': 'flowy dress, hilltop sunset, hair blowing, looking back over shoulder, backpack on shoulder, natural color grading',
+  'AI & Technology': 'desk with dual monitors, hoodie, headphones around neck, soft RGB glow, coffee mug, mid-explanation expression',
+  'Food & Cooking': 'holding latte in cozy cafe, warm tones, steam rising, bokeh lights, soft smile, real wooden table',
+  'Education & Facts': 'studying at desk at night, desk lamp glow, notes and highlighters, focused expression, laptop open, cozy room',
+};
+
+// Ready-made 15-sec script templates (from Roshan's approved Bhupinder package)
+const SCRIPT_TEMPLATES = [
+  {
+    name: 'Bhupinder Style (Energy Tip)',
+    hook: 'Ruko! Ye trick 99% log nahi jaante!',
+    script: 'Hey guys! Main hun [NAME]! Aaj ek secret batata hun — roz subah 5 minute ye karo, aur tumhari energy double ho jayegi! Try karo aur comment mein batao kaisa laga!',
+  },
+  {
+    name: 'Myth vs Truth',
+    hook: 'Ye myth hai ya sach? Aaj pata chalega!',
+    script: 'Okay wait, nobody told me this about [TOPIC]. [pause] I wasted months doing it the hard way. Here is the trick that changed everything... [short tip]. Try it today and tell me in the comments if it worked, okay?',
+  },
+  {
+    name: '3 Tips Format',
+    hook: '3 tips jo tumhari life badal denge!',
+    script: 'Hey everyone! Aaj main aapko [TOPIC] ke baare mein 3 simple tips bataungi. Pehla—[tip one]. Doosra—[tip two]. Aur teesra—[tip three]. Save kar lo, next video mein iska practical example dikhayenge!',
+  },
+];
+
+type Step = 'character' | 'niche' | 'script' | 'voice' | 'video';
+
+export function InfluencerStudio({ notify }: InfluencerStudioProps) {
+  const { user } = useAuth();
+  const [step, setStep] = useState<Step>('character');
+  const [gender, setGender] = useState<'girls' | 'boys'>('girls');
+  const [selectedChar, setSelectedChar] = useState<Character | null>(null);
+  const [influencerName, setInfluencerName] = useState('');
+  const [niche, setNiche] = useState(NICHES[0]);
+  const [language, setLanguage] = useState('hinglish');
+  const [topic, setTopic] = useState('');
+  const [script, setScript] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [generatingVoice, setGeneratingVoice] = useState(false);
+  const [videoPrompts, setVideoPrompts] = useState<string[]>([]);
+  const [generatingVideos, setGeneratingVideos] = useState(false);
+  const [selectedAction, setSelectedAction] = useState(ACTIONS[0]);
+  const [selectedExpression, setSelectedExpression] = useState(EXPRESSIONS[0]);
+  const [videoStyle, setVideoStyle] = useState(VIDEO_STYLES[0].id);
+
+  const filtered = CHARACTERS.filter(c => c.gender === gender);
+
+  const generateScript = async () => {
+    if (!selectedChar || !topic.trim()) {
+      notify('error', 'Pehle character aur topic select karo!');
+      return;
+    }
+    setGenerating(true);
+    try {
+      const prompt = `Write a short, engaging social media video script (30-45 seconds, 60-90 words) for an AI influencer named ${influencerName || selectedChar.region + ' beauty'} from ${selectedChar.region}. Niche: ${niche}. Topic: ${topic}. Language: ${language === 'hinglish' ? 'Hinglish (mix of Hindi and English, natural conversational)' : language}. Style: Hook in first line, conversational, energetic, ends with a call-to-action. No medical claims, no financial advice.`;
+      const res = await apiFetch('/api/enhance-prompt', {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      setScript(data.enhanced || data.text || '');
+      setStep('script');
+      notify('success', 'Script taiyaar hai!');
+    } catch (e: any) {
+      notify('error', 'Script generate nahi hua: ' + (e.message || 'error'));
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const generateVideoPrompts = async () => {
+    if (!selectedChar) {
+      notify('error', 'Pehle character select karo!');
+      return;
+    }
+    setGeneratingVideos(true);
+    try {
+      const style = VIDEO_STYLES.find(v => v.id === videoStyle) || VIDEO_STYLES[0];
+      const nichePack = NICHE_PACKS[niche] || '';
+      const charName = influencerName || selectedChar.region + ' star';
+      const prompt = `Generate 5 fresh short video motion prompts (one line each, numbered 1-5) for AI influencer "${charName}" from ${selectedChar.region}, niche: ${niche}. Character action: ${selectedAction}. Expression: ${selectedExpression}. Video style: ${style.label} — ${style.prompt}. ${nichePack ? 'Visual style: ' + nichePack + '.' : ''} Each prompt: describe the motion naturally, human-like, 5-6 seconds, vertical 9:16, photorealistic, natural skin texture with visible pores (NOT airbrushed/plastic), candid iPhone photo feel. Varied settings, no repetition.`;
+      const res = await apiFetch('/api/enhance-prompt', {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      const text = data.enhanced || data.text || '';
+      const lines = text.split('\n').filter((l: string) => l.trim().length > 0).slice(0, 5);
+      setVideoPrompts(lines);
+      setStep('video');
+      notify('success', 'Video prompts taiyaar!');
+    } catch (e: any) {
+      notify('error', 'Prompts generate nahi hue: ' + (e.message || 'error'));
+    } finally {
+      setGeneratingVideos(false);
+    }
+  };
+
+  const generateVoice = async () => {
+    if (!script.trim()) {
+      notify('error', 'Pehle script banao!');
+      return;
+    }
+    setGeneratingVoice(true);
+    try {
+      const res = await apiFetch('/api/generate/audio', {
+        method: 'POST',
+        body: JSON.stringify({ prompt: script.slice(0, 500), type: 'speech', voice: 'studio_female' }),
+      });
+      const data = await res.json();
+      if (data.audioUrl || data.url) {
+        setVoiceUrl(data.audioUrl || data.url);
+        notify('success', 'Voiceover taiyaar!');
+      } else {
+        notify('error', 'Voice generate nahi hui');
+      }
+    } catch (e: any) {
+      notify('error', 'Voice error: ' + (e.message || 'error'));
+    } finally {
+      setGeneratingVoice(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto p-4 space-y-6">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
+          <Sparkles className="text-purple-500" /> AI Influencer Studio
+        </h1>
+        <p className="text-gray-500 mt-1">Apna AI influencer banao — character, script, voice, sab kuch!</p>
+      </div>
+
+      {/* Step indicator */}
+      <div className="flex items-center justify-center gap-2 text-sm flex-wrap">
+        {(['character', 'niche', 'script', 'voice', 'video'] as Step[]).map((s, i) => (
+          <React.Fragment key={s}>
+            <span className={`px-3 py-1 rounded-full ${step === s ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              {['Character', 'Niche', 'Script', 'Voice', 'Video'][i]}
+            </span>
+            {i < 4 && <ChevronRight size={16} className="text-gray-400" />}
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Step 1: Character */}
+      {step === 'character' && (
+        <div className="space-y-4">
+          <div className="flex gap-2 justify-center">
+            <button
+              onClick={() => { setGender('girls'); setSelectedChar(null); }}
+              className={`px-6 py-2 rounded-full font-medium ${gender === 'girls' ? 'bg-pink-600 text-white' : 'bg-gray-200'}`}
+            >👧 Girls</button>
+            <button
+              onClick={() => { setGender('boys'); setSelectedChar(null); }}
+              className={`px-6 py-2 rounded-full font-medium ${gender === 'boys' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+            >👦 Boys</button>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+            {filtered.map(c => (
+              <button
+                key={`${c.gender}-${c.id}`}
+                onClick={() => setSelectedChar(c)}
+                className={`rounded-xl overflow-hidden border-2 transition ${selectedChar?.file === c.file ? 'border-purple-600 ring-2 ring-purple-300' : 'border-transparent'}`}
+              >
+                <img src={c.file} alt={c.region} className="w-full aspect-[3/4] object-cover" />
+                <div className="text-xs py-1 bg-gray-100 font-medium">{c.region}</div>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 items-center justify-center">
+            <input
+              value={influencerName}
+              onChange={e => setInfluencerName(e.target.value)}
+              placeholder="Influencer ka naam (jaise: Elena)"
+              className="px-4 py-2 border rounded-full w-64 text-center"
+            />
+            <button
+              disabled={!selectedChar}
+              onClick={() => setStep('niche')}
+              className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium disabled:opacity-40 flex items-center gap-2"
+            ><User size={16} /> Next <ChevronRight size={16} /></button>
+          </div>
+
+          {/* Human-like Action & Expression (from Prompt Pack) */}
+          {selectedChar && (
+            <div className="max-w-lg mx-auto space-y-3 bg-purple-50 rounded-2xl p-4">
+              <h3 className="font-semibold text-center text-sm">🤸 Human-like Action & Expression</h3>
+              <div>
+                <label className="text-xs font-medium text-gray-600">Action (kya kar raha hai?)</label>
+                <select
+                  value={selectedAction}
+                  onChange={e => setSelectedAction(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white"
+                >
+                  {ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600">Expression (chehre par kya?)</label>
+                <select
+                  value={selectedExpression}
+                  onChange={e => setSelectedExpression(e.target.value)}
+                  className="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white"
+                >
+                  {EXPRESSIONS.map(e => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-600">Video Style</label>
+                <div className="flex gap-2 flex-wrap mt-1">
+                  {VIDEO_STYLES.map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => setVideoStyle(v.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium ${videoStyle === v.id ? 'bg-purple-600 text-white' : 'bg-white border'}`}
+                    >{v.label}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step 2: Niche */}
+      {step === 'niche' && (
+        <div className="space-y-4 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-center">Niche aur Language chuno</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {NICHES.map(n => (
+              <button
+                key={n}
+                onClick={() => setNiche(n)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium ${niche === n ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+              >{n}</button>
+            ))}
+          </div>
+          <div className="flex gap-2 justify-center">
+            {LANGUAGES.map(l => (
+              <button
+                key={l.code}
+                onClick={() => setLanguage(l.code)}
+                className={`px-4 py-2 rounded-full text-sm ${language === l.code ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+              >{l.label}</button>
+            ))}
+          </div>
+          <input
+            value={topic}
+            onChange={e => setTopic(e.target.value)}
+            placeholder="Topic likho (jaise: 5 AI tools for students)"
+            className="w-full px-4 py-3 border rounded-xl"
+          />
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => setStep('character')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button
+              disabled={generating || !topic.trim()}
+              onClick={generateScript}
+              className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium disabled:opacity-40 flex items-center gap-2"
+            >{generating ? <Loader2 className="animate-spin" size={16} /> : <FileText size={16} />} Script Banao</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Script */}
+      {step === 'script' && (
+        <div className="space-y-4 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-center">Tumhara Script</h2>
+          {selectedChar && (
+            <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+              <img src={selectedChar.file} alt="" className="w-12 h-12 rounded-full object-cover" />
+              <div>
+                <div className="font-semibold">{influencerName || selectedChar.region + ' star'}</div>
+                <div className="text-xs text-gray-500">{niche} • {selectedChar.region}</div>
+              </div>
+            </div>
+          )}
+          <textarea
+            value={script}
+            onChange={e => setScript(e.target.value)}
+            rows={8}
+            className="w-full px-4 py-3 border rounded-xl"
+            placeholder="Script yahan ayega..."
+          />
+          {/* Ready-made templates */}
+          <div className="bg-purple-50 rounded-xl p-3">
+            <div className="text-xs font-semibold text-gray-600 mb-2">📝 Ready Templates (tap to use):</div>
+            <div className="flex gap-2 flex-wrap">
+              {SCRIPT_TEMPLATES.map(t => (
+                <button
+                  key={t.name}
+                  onClick={() => {
+                    const name = influencerName || selectedChar?.region + ' star' || 'Star';
+                    setScript(`HOOK: ${t.hook}\n\n${t.script.replace('[NAME]', name)}`);
+                    notify('success', t.name + ' template lagaya!');
+                  }}
+                  className="px-3 py-1.5 bg-white border border-purple-200 rounded-full text-xs font-medium hover:bg-purple-100"
+                >{t.name}</button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => setStep('niche')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button
+              onClick={generateScript}
+              disabled={generating}
+              className="px-4 py-2 bg-gray-200 rounded-full flex items-center gap-2"
+            ><RefreshCw size={16} /> Dobara</button>
+            <button
+              onClick={() => setStep('voice')}
+              className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium flex items-center gap-2"
+            ><Mic size={16} /> Voice Banao</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Voice */}
+      {step === 'voice' && (
+        <div className="space-y-4 max-w-lg mx-auto text-center">
+          <h2 className="text-lg font-semibold">Voiceover</h2>
+          <p className="text-sm text-gray-500">Script ka voiceover generate karo</p>
+          <button
+            onClick={generateVoice}
+            disabled={generatingVoice}
+            className="px-6 py-3 bg-purple-600 text-white rounded-full font-medium disabled:opacity-40 flex items-center gap-2 mx-auto"
+          >{generatingVoice ? <Loader2 className="animate-spin" size={16} /> : <Mic size={16} />} Voice Generate Karo</button>
+          {voiceUrl && (
+            <div className="space-y-2">
+              <audio controls src={voiceUrl} className="w-full" />
+              <a href={voiceUrl} download className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-full text-sm">
+                <Download size={16} /> Download MP3
+              </a>
+            </div>
+          )}
+          <div className="flex gap-2 justify-center">
+            <button onClick={() => setStep('script')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button
+              onClick={generateVideoPrompts}
+              disabled={generatingVideos}
+              className="px-6 py-2 bg-purple-600 text-white rounded-full font-medium disabled:opacity-40 flex items-center gap-2"
+            >{generatingVideos ? <Loader2 className="animate-spin" size={16} /> : <ImageIcon size={16} />} Video Prompts</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 5: Video Prompts */}
+      {step === 'video' && (
+        <div className="space-y-4 max-w-lg mx-auto">
+          <h2 className="text-lg font-semibold text-center">Video Prompts</h2>
+          <p className="text-sm text-gray-500 text-center">AI image animation ke liye 5 fresh prompts</p>
+          {videoPrompts.length === 0 ? (
+            <div className="text-center">
+              <button
+                onClick={generateVideoPrompts}
+                disabled={generatingVideos}
+                className="px-6 py-3 bg-purple-600 text-white rounded-full font-medium disabled:opacity-40 flex items-center gap-2 mx-auto"
+              >{generatingVideos ? <Loader2 className="animate-spin" size={16} /> : <ImageIcon size={16} />} Prompts Generate Karo</button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {videoPrompts.map((p, i) => (
+                <div key={i} className="bg-gray-50 rounded-xl p-3 text-sm flex gap-2">
+                  <span className="font-bold text-purple-600 shrink-0">{i + 1}.</span>
+                  <span>{p.replace(/^\d+[\.\)]\s*/, '')}</span>
+                </div>
+              ))}
+              <button
+                onClick={generateVideoPrompts}
+                disabled={generatingVideos}
+                className="px-4 py-2 bg-gray-200 rounded-full text-sm flex items-center gap-2 mx-auto"
+              ><RefreshCw size={14} /> Naye Prompts</button>
+            </div>
+          )}
+          <div className="text-center">
+            <button onClick={() => setStep('voice')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+          </div>
+        </div>
+      )}
+
+      {/* Pro Tips from Top AI Influencers */}
+      <div className="max-w-lg mx-auto bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 space-y-2">
+        <h3 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-purple-600" /> Pro Tips (Top AI Influencers se)</h3>
+        <ul className="text-sm text-gray-700 space-y-1">
+          <li>✅ <b>Consistency:</b> Har post mein same face, same look rakho</li>
+          <li>✅ <b>AI Disclosure:</b> Bio mein "AI influencer" likhna mandatory hai (Instagram rule)</li>
+          <li>✅ <b>Ek niche:</b> Fashion, fitness, ya gaming — ek chuno, uspar focus karo</li>
+          <li>✅ <b>Roz post karo:</b> Top influencers daily post karte hain</li>
+          <li>⚠️ <b>Followers = paise nahi:</b> 400K followers par ~$5K/month hota hai, patience rakho</li>
+        </ul>
+      </div>
+
+      {/* Realism Guide - Beat the Competition */}
+      <div className="max-w-lg mx-auto bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-4 space-y-2">
+        <h3 className="font-semibold flex items-center gap-2">🎬 Realism Guide (Unse Better!)</h3>
+        <div className="text-sm text-gray-700 space-y-2">
+          <div>
+            <b>🗣️ Lip Sync Perfect Karo:</b>
+            <ul className="ml-4 mt-1 space-y-0.5">
+              <li>• Voice speed: 165-175 words/min (energetic, short-form ke liye)</li>
+              <li>• 0.15s se lambe pauses hatao — dead air kills retention</li>
+              <li>• Halki background sound add karo (room tone) — synthetic silence chhupao</li>
+            </ul>
+          </div>
+          <div>
+            <b>📸 Realistic Dikhne Ke Rules:</b>
+            <ul className="ml-4 mt-1 space-y-0.5">
+              <li>• Ek hi character photo har baar use karo (face lock)</li>
+              <li>• Natural skin texture — zyada smooth/airbrushed mat karo</li>
+              <li>• Phone-photo style: casual framing, imperfect = real lagta hai</li>
+              <li>• Ek clip mein 1-2 actions max — zyada describe mat karo</li>
+            </ul>
+          </div>
+          <div>
+            <b>❌ Common Mistakes (Bacho!):</b>
+            <ul className="ml-4 mt-1 space-y-0.5">
+              <li>• Face har post mein change hona (#1 killer)</li>
+              <li>• Bina hook ke posting (pehle 3 sec sabse important)</li>
+              <li>• Flat script — zor se bolo, phir likho</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {!user && (
+        <p className="text-center text-sm text-gray-500">Login karo taaki tumhare creations save ho sakein!</p>
+      )}
+    </div>
+  );
+}
