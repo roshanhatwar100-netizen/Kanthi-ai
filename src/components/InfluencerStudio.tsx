@@ -487,8 +487,8 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
         <ul className="text-sm text-gray-200 space-y-1">
           <li>✅ <b>Consistency:</b> Keep the same face and the same look in every post</li>
           <li>✅ <b>AI Disclosure:</b> Writing "AI influencer" in your bio is mandatory (Instagram rule)</li>
-          <li>✅ <b>Ek niche:</b> Fashion, fitness, or gaming — pick one and focus on it</li>
-          <li>✅ <b>Roz post karo:</b> Top influencers post every day</li>
+          <li>✅ <b>Pick one niche:</b> Fashion, fitness, or gaming — pick one and focus on it</li>
+          <li>✅ <b>Post daily:</b> Top influencers post every day</li>
           <li>⚠️ <b>Followers are not money:</b> it takes ~400K followers to reach ~$5K/month — be patient</li>
         </ul>
       </div>
