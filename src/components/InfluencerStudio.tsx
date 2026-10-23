@@ -227,19 +227,19 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 space-y-6 bg-[#10131A] border border-white/10 rounded-3xl text-gray-100">
       <div className="text-center">
         <h1 className="text-2xl font-bold flex items-center justify-center gap-2">
           <Sparkles className="text-purple-500" /> AI Influencer Studio
         </h1>
-        <p className="text-gray-500 mt-1">Apna AI influencer banao — character, script, voice, sab kuch!</p>
+        <p className="text-gray-400 mt-1">Apna AI influencer banao — character, script, voice, sab kuch!</p>
       </div>
 
       {/* Step indicator */}
       <div className="flex items-center justify-center gap-2 text-sm flex-wrap">
         {(['character', 'niche', 'script', 'voice', 'video'] as Step[]).map((s, i) => (
           <React.Fragment key={s}>
-            <span className={`px-3 py-1 rounded-full ${step === s ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+            <span className={`px-3 py-1 rounded-full ${step === s ? 'bg-purple-600 text-white' : 'bg-white/10 text-gray-300'}`}>
               {['Character', 'Niche', 'Script', 'Voice', 'Video'][i]}
             </span>
             {i < 4 && <ChevronRight size={16} className="text-gray-400" />}
@@ -253,11 +253,11 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
           <div className="flex gap-2 justify-center">
             <button
               onClick={() => { setGender('girls'); setSelectedChar(null); }}
-              className={`px-6 py-2 rounded-full font-medium ${gender === 'girls' ? 'bg-pink-600 text-white' : 'bg-gray-200'}`}
+              className={`px-6 py-2 rounded-full font-medium ${gender === 'girls' ? 'bg-pink-600 text-white' : 'bg-white/10'}`}
             >👧 Girls</button>
             <button
               onClick={() => { setGender('boys'); setSelectedChar(null); }}
-              className={`px-6 py-2 rounded-full font-medium ${gender === 'boys' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+              className={`px-6 py-2 rounded-full font-medium ${gender === 'boys' ? 'bg-blue-600 text-white' : 'bg-white/10'}`}
             >👦 Boys</button>
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
@@ -268,7 +268,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
                 className={`rounded-xl overflow-hidden border-2 transition ${selectedChar?.file === c.file ? 'border-purple-600 ring-2 ring-purple-300' : 'border-transparent'}`}
               >
                 <img src={c.file} alt={c.region} className="w-full aspect-[3/4] object-cover" />
-                <div className="text-xs py-1 bg-gray-100 font-medium">{c.region}</div>
+                <div className="text-xs py-1 bg-white/10 font-medium">{c.region}</div>
               </button>
             ))}
           </div>
@@ -288,36 +288,36 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
 
           {/* Human-like Action & Expression (from Prompt Pack) */}
           {selectedChar && (
-            <div className="max-w-lg mx-auto space-y-3 bg-purple-50 rounded-2xl p-4">
+            <div className="max-w-lg mx-auto space-y-3 bg-purple-500/10 rounded-2xl p-4">
               <h3 className="font-semibold text-center text-sm">🤸 Human-like Action & Expression</h3>
               <div>
-                <label className="text-xs font-medium text-gray-600">Action (kya kar raha hai?)</label>
+                <label className="text-xs font-medium text-gray-300">Action (kya kar raha hai?)</label>
                 <select
                   value={selectedAction}
                   onChange={e => setSelectedAction(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white"
+                  className="w-full mt-1 px-3 py-2 border border-white/15 rounded-xl text-sm bg-white/5 text-gray-100 placeholder-gray-500"
                 >
                   {ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600">Expression (chehre par kya?)</label>
+                <label className="text-xs font-medium text-gray-300">Expression (chehre par kya?)</label>
                 <select
                   value={selectedExpression}
                   onChange={e => setSelectedExpression(e.target.value)}
-                  className="w-full mt-1 px-3 py-2 border rounded-xl text-sm bg-white"
+                  className="w-full mt-1 px-3 py-2 border border-white/15 rounded-xl text-sm bg-white/5 text-gray-100 placeholder-gray-500"
                 >
                   {EXPRESSIONS.map(e => <option key={e} value={e}>{e}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-600">Video Style</label>
+                <label className="text-xs font-medium text-gray-300">Video Style</label>
                 <div className="flex gap-2 flex-wrap mt-1">
                   {VIDEO_STYLES.map(v => (
                     <button
                       key={v.id}
                       onClick={() => setVideoStyle(v.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium ${videoStyle === v.id ? 'bg-purple-600 text-white' : 'bg-white border'}`}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium ${videoStyle === v.id ? 'bg-purple-600 text-white' : 'bg-white/10 border-white/20'}`}
                     >{v.label}</button>
                   ))}
                 </div>
@@ -336,7 +336,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
               <button
                 key={n}
                 onClick={() => setNiche(n)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium ${niche === n ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+                className={`px-4 py-2 rounded-xl text-sm font-medium ${niche === n ? 'bg-purple-600 text-white' : 'bg-white/10'}`}
               >{n}</button>
             ))}
           </div>
@@ -345,7 +345,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
               <button
                 key={l.code}
                 onClick={() => setLanguage(l.code)}
-                className={`px-4 py-2 rounded-full text-sm ${language === l.code ? 'bg-purple-600 text-white' : 'bg-gray-100'}`}
+                className={`px-4 py-2 rounded-full text-sm ${language === l.code ? 'bg-purple-600 text-white' : 'bg-white/10'}`}
               >{l.label}</button>
             ))}
           </div>
@@ -353,10 +353,10 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
             value={topic}
             onChange={e => setTopic(e.target.value)}
             placeholder="Topic likho (jaise: 5 AI tools for students)"
-            className="w-full px-4 py-3 border rounded-xl"
+            className="w-full px-4 py-3 border border-white/15 rounded-xl bg-white/5 text-gray-100 placeholder-gray-500"
           />
           <div className="flex gap-2 justify-center">
-            <button onClick={() => setStep('character')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button onClick={() => setStep('character')} className="px-6 py-2 bg-white/10 rounded-full">Back</button>
             <button
               disabled={generating || !topic.trim()}
               onClick={generateScript}
@@ -371,11 +371,11 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
         <div className="space-y-4 max-w-lg mx-auto">
           <h2 className="text-lg font-semibold text-center">Tumhara Script</h2>
           {selectedChar && (
-            <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+            <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
               <img src={selectedChar.file} alt="" className="w-12 h-12 rounded-full object-cover" />
               <div>
                 <div className="font-semibold">{influencerName || selectedChar.region + ' star'}</div>
-                <div className="text-xs text-gray-500">{niche} • {selectedChar.region}</div>
+                <div className="text-xs text-gray-400">{niche} • {selectedChar.region}</div>
               </div>
             </div>
           )}
@@ -383,12 +383,12 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
             value={script}
             onChange={e => setScript(e.target.value)}
             rows={8}
-            className="w-full px-4 py-3 border rounded-xl"
+            className="w-full px-4 py-3 border border-white/15 rounded-xl bg-white/5 text-gray-100 placeholder-gray-500"
             placeholder="Script yahan ayega..."
           />
           {/* Ready-made templates */}
-          <div className="bg-purple-50 rounded-xl p-3">
-            <div className="text-xs font-semibold text-gray-600 mb-2">📝 Ready Templates (tap to use):</div>
+          <div className="bg-purple-500/10 rounded-xl p-3">
+            <div className="text-xs font-semibold text-gray-300 mb-2">📝 Ready Templates (tap to use):</div>
             <div className="flex gap-2 flex-wrap">
               {SCRIPT_TEMPLATES.map(t => (
                 <button
@@ -398,17 +398,17 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
                     setScript(`HOOK: ${t.hook}\n\n${t.script.replace('[NAME]', name)}`);
                     notify('success', t.name + ' template lagaya!');
                   }}
-                  className="px-3 py-1.5 bg-white border border-purple-200 rounded-full text-xs font-medium hover:bg-purple-100"
+                  className="px-3 py-1.5 bg-white/10 border border-purple-300/30 rounded-full text-xs font-medium hover:bg-purple-500/100/20"
                 >{t.name}</button>
               ))}
             </div>
           </div>
           <div className="flex gap-2 justify-center">
-            <button onClick={() => setStep('niche')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button onClick={() => setStep('niche')} className="px-6 py-2 bg-white/10 rounded-full">Back</button>
             <button
               onClick={generateScript}
               disabled={generating}
-              className="px-4 py-2 bg-gray-200 rounded-full flex items-center gap-2"
+              className="px-4 py-2 bg-white/10 rounded-full flex items-center gap-2"
             ><RefreshCw size={16} /> Dobara</button>
             <button
               onClick={() => setStep('voice')}
@@ -422,7 +422,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
       {step === 'voice' && (
         <div className="space-y-4 max-w-lg mx-auto text-center">
           <h2 className="text-lg font-semibold">Voiceover</h2>
-          <p className="text-sm text-gray-500">Script ka voiceover generate karo</p>
+          <p className="text-sm text-gray-400">Script ka voiceover generate karo</p>
           <button
             onClick={generateVoice}
             disabled={generatingVoice}
@@ -431,13 +431,13 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
           {voiceUrl && (
             <div className="space-y-2">
               <audio controls src={voiceUrl} className="w-full" />
-              <a href={voiceUrl} download className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 rounded-full text-sm">
+              <a href={voiceUrl} download className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-sm">
                 <Download size={16} /> Download MP3
               </a>
             </div>
           )}
           <div className="flex gap-2 justify-center">
-            <button onClick={() => setStep('script')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button onClick={() => setStep('script')} className="px-6 py-2 bg-white/10 rounded-full">Back</button>
             <button
               onClick={generateVideoPrompts}
               disabled={generatingVideos}
@@ -451,7 +451,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
       {step === 'video' && (
         <div className="space-y-4 max-w-lg mx-auto">
           <h2 className="text-lg font-semibold text-center">Video Prompts</h2>
-          <p className="text-sm text-gray-500 text-center">AI image animation ke liye 5 fresh prompts</p>
+          <p className="text-sm text-gray-400 text-center">AI image animation ke liye 5 fresh prompts</p>
           {videoPrompts.length === 0 ? (
             <div className="text-center">
               <button
@@ -463,7 +463,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
           ) : (
             <div className="space-y-2">
               {videoPrompts.map((p, i) => (
-                <div key={i} className="bg-gray-50 rounded-xl p-3 text-sm flex gap-2">
+                <div key={i} className="bg-white/5 rounded-xl p-3 text-sm flex gap-2">
                   <span className="font-bold text-purple-600 shrink-0">{i + 1}.</span>
                   <span>{p.replace(/^\d+[\.\)]\s*/, '')}</span>
                 </div>
@@ -471,62 +471,62 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
               <button
                 onClick={generateVideoPrompts}
                 disabled={generatingVideos}
-                className="px-4 py-2 bg-gray-200 rounded-full text-sm flex items-center gap-2 mx-auto"
+                className="px-4 py-2 bg-white/10 rounded-full text-sm flex items-center gap-2 mx-auto"
               ><RefreshCw size={14} /> Naye Prompts</button>
             </div>
           )}
           <div className="text-center">
-            <button onClick={() => setStep('voice')} className="px-6 py-2 bg-gray-200 rounded-full">Back</button>
+            <button onClick={() => setStep('voice')} className="px-6 py-2 bg-white/10 rounded-full">Back</button>
           </div>
         </div>
       )}
 
       {/* Pro Tips from Top AI Influencers */}
-      <div className="max-w-lg mx-auto bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 space-y-2">
-        <h3 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-purple-600" /> Pro Tips (Top AI Influencers se)</h3>
-        <ul className="text-sm text-gray-700 space-y-1">
-          <li>✅ <b>Consistency:</b> Har post mein same face, same look rakho</li>
-          <li>✅ <b>AI Disclosure:</b> Bio mein "AI influencer" likhna mandatory hai (Instagram rule)</li>
-          <li>✅ <b>Ek niche:</b> Fashion, fitness, ya gaming — ek chuno, uspar focus karo</li>
-          <li>✅ <b>Roz post karo:</b> Top influencers daily post karte hain</li>
-          <li>⚠️ <b>Followers = paise nahi:</b> 400K followers par ~$5K/month hota hai, patience rakho</li>
+      <div className="max-w-lg mx-auto bg-gradient-to-r from-purple-500/20 to-pink-500/10 rounded-2xl p-4 space-y-2">
+        <h3 className="font-semibold flex items-center gap-2"><Sparkles size={16} className="text-purple-600" /> Pro Tips (from Top AI Influencers)</h3>
+        <ul className="text-sm text-gray-200 space-y-1">
+          <li>✅ <b>Consistency:</b> Keep the same face and the same look in every post</li>
+          <li>✅ <b>AI Disclosure:</b> Writing "AI influencer" in your bio is mandatory (Instagram rule)</li>
+          <li>✅ <b>Ek niche:</b> Fashion, fitness, or gaming — pick one and focus on it</li>
+          <li>✅ <b>Roz post karo:</b> Top influencers post every day</li>
+          <li>⚠️ <b>Followers are not money:</b> it takes ~400K followers to reach ~$5K/month — be patient</li>
         </ul>
       </div>
 
       {/* Realism Guide - Beat the Competition */}
-      <div className="max-w-lg mx-auto bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-4 space-y-2">
-        <h3 className="font-semibold flex items-center gap-2">🎬 Realism Guide (Unse Better!)</h3>
-        <div className="text-sm text-gray-700 space-y-2">
+      <div className="max-w-lg mx-auto bg-gradient-to-r from-blue-500/20 to-cyan-500/10 rounded-2xl p-4 space-y-2">
+        <h3 className="font-semibold flex items-center gap-2">🎬 Realism Guide (Beat the Competition!)</h3>
+        <div className="text-sm text-gray-200 space-y-2">
           <div>
-            <b>🗣️ Lip Sync Perfect Karo:</b>
+            <b>🗣️ Perfect the Lip Sync:</b>
             <ul className="ml-4 mt-1 space-y-0.5">
-              <li>• Voice speed: 165-175 words/min (energetic, short-form ke liye)</li>
-              <li>• 0.15s se lambe pauses hatao — dead air kills retention</li>
-              <li>• Halki background sound add karo (room tone) — synthetic silence chhupao</li>
+              <li>• Voice speed: 165-175 words/min (energetic, for short-form)</li>
+              <li>• Cut pauses longer than 0.15s — dead air kills retention</li>
+              <li>• Add light background sound (room tone) — it hides the synthetic silence</li>
             </ul>
           </div>
           <div>
-            <b>📸 Realistic Dikhne Ke Rules:</b>
+            <b>📸 Rules to Look Realistic:</b>
             <ul className="ml-4 mt-1 space-y-0.5">
-              <li>• Ek hi character photo har baar use karo (face lock)</li>
-              <li>• Natural skin texture — zyada smooth/airbrushed mat karo</li>
-              <li>• Phone-photo style: casual framing, imperfect = real lagta hai</li>
-              <li>• Ek clip mein 1-2 actions max — zyada describe mat karo</li>
+              <li>• Use the same character photo every time (face lock)</li>
+              <li>• Natural skin texture — don't over-smooth or airbrush</li>
+              <li>• Phone-photo style: casual framing — imperfect looks real</li>
+              <li>• Max 1-2 actions in one clip — don't over-describe</li>
             </ul>
           </div>
           <div>
-            <b>❌ Common Mistakes (Bacho!):</b>
+            <b>❌ Common Mistakes (Avoid These!):</b>
             <ul className="ml-4 mt-1 space-y-0.5">
-              <li>• Face har post mein change hona (#1 killer)</li>
-              <li>• Bina hook ke posting (pehle 3 sec sabse important)</li>
-              <li>• Flat script — zor se bolo, phir likho</li>
+              <li>• The face changing in every post (#1 killer)</li>
+              <li>• Posting without a hook (the first 3 seconds matter most)</li>
+              <li>• Flat script — say it out loud first, then write it</li>
             </ul>
           </div>
         </div>
       </div>
 
       {!user && (
-        <p className="text-center text-sm text-gray-500">Login karo taaki tumhare creations save ho sakein!</p>
+        <p className="text-center text-sm text-gray-400">Login karo taaki tumhare creations save ho sakein!</p>
       )}
     </div>
   );
