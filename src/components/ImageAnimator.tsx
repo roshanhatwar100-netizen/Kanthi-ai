@@ -4,7 +4,7 @@ import { apiFetch } from '../api';
 import { Generation } from '../types';
 import { useAuth } from '../context/AuthContext';
 
-type MotionPreset = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right';
+export type MotionPreset = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right';
 
 const MOTIONS: { id: MotionPreset; label: string; hint: string }[] = [
   { id: 'zoom-in', label: 'Zoom In', hint: 'Slow push toward the subject' },
@@ -74,7 +74,7 @@ export async function refundCredits(
 }
 
 // Draw one animation frame. t is 0..1 progress through the clip.
-function drawFrame(
+export function drawFrame(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   t: number,

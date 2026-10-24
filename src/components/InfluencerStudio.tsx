@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles, User, Mic, Image as ImageIcon, FileText,
-  Loader2, Download, RefreshCw, ChevronRight
+  Loader2, Download, RefreshCw, ChevronRight, Film
 } from 'lucide-react';
 import { apiFetch } from '../api';
+import { spendCredits, refundCredits, drawFrame, type MotionPreset } from './ImageAnimator';
 import { useAuth } from '../context/AuthContext';
 
 interface InfluencerStudioProps {
@@ -130,7 +131,7 @@ const SCRIPT_TEMPLATES = [
 type Step = 'character' | 'niche' | 'script' | 'voice' | 'video';
 
 export function InfluencerStudio({ notify }: InfluencerStudioProps) {
-  const { user } = useAuth();
+  const { user, refreshCredits } = useAuth();
   const [step, setStep] = useState<Step>('character');
   const [gender, setGender] = useState<'girls' | 'boys'>('girls');
   const [selectedChar, setSelectedChar] = useState<Character | null>(null);
@@ -143,6 +144,11 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
   const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
   const [generatingVoice, setGeneratingVoice] = useState(false);
   const [videoPrompts, setVideoPrompts] = useState<string[]>([]);
+  const [studioVideoUrl, setStudioVideoUrl] = useState<string | null>(null);
+  const [renderingVideo, setRenderingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const videoCanvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRafRef = useRef(0);
   const [generatingVideos, setGeneratingVideos] = useState(false);
   const [selectedAction, setSelectedAction] = useState(ACTIONS[0]);
   const [selectedExpression, setSelectedExpression] = useState(EXPRESSIONS[0]);
@@ -207,6 +213,76 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
       notify('error', 'Prompts generate nahi hue: ' + (e.message || 'error'));
     } finally {
       setGeneratingVideos(false);
+    }
+  };
+
+  // Draw the first frame as a preview whenever the video step opens.
+  useEffect(() => {
+    if (step !== 'video' || !selectedChar) return;
+    const canvas = videoCanvasRef.current;
+    if (!canvas) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = canvas.getContext('2d');
+      if (ctx) drawFrame(ctx, img, 0, 'zoom-in', 720, 1280);
+    };
+    img.src = selectedChar.file;
+  }, [step, selectedChar]);
+
+  // Make an actual video: animate the character photo in the browser (5 credits).
+  const renderStudioVideo = async () => {
+    if (!selectedChar || renderingVideo) return;
+    const canvas = videoCanvasRef.current;
+    if (!canvas) {
+      notify('error', 'Video panel ready nahi hai — page refresh karke try karo.');
+      return;
+    }
+    setRenderingVideo(true);
+    setVideoProgress(0);
+    setStudioVideoUrl(null);
+    const paid = await spendCredits('animate-video', 0, notify, onOpenPricing);
+    if (!paid) {
+      setRenderingVideo(false);
+      return;
+    }
+    refreshCredits().catch(() => {});
+    try {
+      const img = new Image();
+      img.src = selectedChar.file;
+      await img.decode();
+      const W = 720, H = 1280, DURATION = 5000;
+      const motionMap: Record<string, MotionPreset> = {
+        talking: 'zoom-in', walking: 'pan-right', product: 'zoom-out', gym: 'pan-left',
+      };
+      const motion = motionMap[videoStyle] || 'zoom-in';
+      const ctx = canvas.getContext('2d')!;
+      const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
+        ? 'video/webm;codecs=vp9'
+        : 'video/webm';
+      const stream = canvas.captureStream(30);
+      const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      recorder.onstop = () => {
+        setStudioVideoUrl(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
+        setRenderingVideo(false);
+        setVideoProgress(0);
+        notify('success', 'Video taiyaar hai! (5 credits lage)');
+      };
+      recorder.start(250);
+      const start = performance.now();
+      const stepFrame = (now: number) => {
+        const t = Math.min((now - start) / DURATION, 1);
+        drawFrame(ctx, img, t, motion, W, H);
+        setVideoProgress(t);
+        if (t < 1) videoRafRef.current = requestAnimationFrame(stepFrame);
+        else recorder.stop();
+      };
+      videoRafRef.current = requestAnimationFrame(stepFrame);
+    } catch (err: any) {
+      setRenderingVideo(false);
+      notify('error', 'Video nahi ban paya: ' + (err.message || 'browser error'));
+      refundCredits('animate-video', 0, notify).catch(() => {});
     }
   };
 
@@ -487,6 +563,37 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
           <div className="text-center">
             <button onClick={() => setStep('voice')} className="px-6 py-2 bg-white/10 rounded-full">Back</button>
           </div>
+        </div>
+      )}
+
+      {/* Make the actual video from the character photo */}
+      {step === 'video' && selectedChar && (
+        <div className="max-w-lg mx-auto space-y-3 bg-white/5 rounded-2xl p-4">
+          <h3 className="font-semibold text-center">🎬 Video Banao — Character Photo Se</h3>
+          <p className="text-xs text-gray-400 text-center">
+            Tumhare chune hue style ({VIDEO_STYLES.find(v => v.id === videoStyle)?.label}) me photo animate hoke
+            5-second ka vertical video banega. (5 credits)
+          </p>
+          <canvas ref={videoCanvasRef} width={720} height={1280} className="w-48 mx-auto rounded-xl bg-black" />
+          {renderingVideo ? (
+            <div className="text-center text-sm text-gray-300">Video ban raha hai… {Math.round(videoProgress * 100)}%</div>
+          ) : studioVideoUrl ? (
+            <div className="space-y-2 text-center">
+              <video controls src={studioVideoUrl} className="w-48 mx-auto rounded-xl" />
+              <a
+                href={studioVideoUrl}
+                download="kanthi-influencer-video.webm"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-full text-sm font-medium"
+              ><Download size={16} /> Video Download Karo</a>
+            </div>
+          ) : (
+            <div className="text-center">
+              <button
+                onClick={renderStudioVideo}
+                className="px-6 py-3 bg-purple-600 text-white rounded-full font-medium flex items-center gap-2 mx-auto"
+              ><Film size={16} /> Video Banao (5 credits)</button>
+            </div>
+          )}
         </div>
       )}
 
