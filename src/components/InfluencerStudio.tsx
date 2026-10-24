@@ -163,7 +163,12 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      setScript(data.enhanced || data.text || '');
+      const scriptText = (data.enhancedPrompt || data.enhanced || data.text || '').trim();
+      if (!res.ok || !scriptText) {
+        notify('error', 'Script generate nahi hua: ' + (data.error || 'server se khaali jawab aaya'));
+        return;
+      }
+      setScript(scriptText);
       setStep('script');
       notify('success', 'Script taiyaar hai!');
     } catch (e: any) {
@@ -189,8 +194,12 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      const text = data.enhanced || data.text || '';
+      const text = (data.enhancedPrompt || data.enhanced || data.text || '').trim();
       const lines = text.split('\n').filter((l: string) => l.trim().length > 0).slice(0, 5);
+      if (!res.ok || lines.length === 0) {
+        notify('error', 'Prompts generate nahi hue: ' + (data.error || 'server se khaali jawab aaya'));
+        return;
+      }
       setVideoPrompts(lines);
       setStep('video');
       notify('success', 'Video prompts taiyaar!');
