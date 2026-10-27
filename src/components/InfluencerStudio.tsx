@@ -14,42 +14,60 @@ interface InfluencerStudioProps {
 
 interface Character {
   id: string;
+  name: string;
   region: string;
   gender: 'girls' | 'boys';
   file: string;
 }
 
 const CHARACTERS: Character[] = [
-  // Girls
-  { id: 'indian', region: 'India', gender: 'girls', file: '/characters/girls/indian.jpg' },
-  { id: 'chinese', region: 'China', gender: 'girls', file: '/characters/girls/chinese.jpg' },
-  { id: 'japanese', region: 'Japan', gender: 'girls', file: '/characters/girls/japanese.jpg' },
-  { id: 'american', region: 'USA', gender: 'girls', file: '/characters/girls/american.jpg' },
-  { id: 'french', region: 'France', gender: 'girls', file: '/characters/girls/french.jpg' },
-  { id: 'german', region: 'Germany', gender: 'girls', file: '/characters/girls/german.jpg' },
-  { id: 'british', region: 'UK', gender: 'girls', file: '/characters/girls/british.jpg' },
-  { id: 'spanish', region: 'Spain', gender: 'girls', file: '/characters/girls/spanish.jpg' },
-  { id: 'turkish', region: 'Turkey', gender: 'girls', file: '/characters/girls/turkish.jpg' },
-  { id: 'egyptian', region: 'Egypt', gender: 'girls', file: '/characters/girls/egyptian.jpg' },
-  { id: 'greek', region: 'Greece', gender: 'girls', file: '/characters/girls/greek.jpg' },
-  { id: 'mexican', region: 'Mexico', gender: 'girls', file: '/characters/girls/mexican.jpg' },
-  { id: 'russian', region: 'Russia', gender: 'girls', file: '/characters/girls/russian.jpg' },
-  { id: 'middleeastern', region: 'Middle East', gender: 'girls', file: '/characters/girls/middleeastern.jpg' },
-  { id: 'african', region: 'Africa', gender: 'girls', file: '/characters/girls/african.jpg' },
-  { id: 'asian', region: 'East Asia', gender: 'girls', file: '/characters/girls/asian.jpg' },
-  { id: 'scandinavian', region: 'Scandinavia', gender: 'girls', file: '/characters/girls/scandinavian.jpg' },
-  { id: 'latina', region: 'Latin America', gender: 'girls', file: '/characters/girls/latina.jpg' },
-  // Boys
-  { id: 'indian', region: 'India', gender: 'boys', file: '/characters/boys/indian.jpg' },
-  { id: 'european', region: 'Italy', gender: 'boys', file: '/characters/boys/european.jpg' },
-  { id: 'latin', region: 'Brazil', gender: 'boys', file: '/characters/boys/latin.jpg' },
-  { id: 'african', region: 'Nigeria', gender: 'boys', file: '/characters/boys/african.jpg' },
-  { id: 'asian', region: 'South Korea', gender: 'boys', file: '/characters/boys/asian.jpg' },
-  { id: 'middleeastern', region: 'UAE', gender: 'boys', file: '/characters/boys/middleeastern.jpg' },
-  { id: 'chinese', region: 'China', gender: 'boys', file: '/characters/boys/chinese.jpg' },
-  { id: 'japanese', region: 'Japan', gender: 'boys', file: '/characters/boys/japanese.jpg' },
-  { id: 'american', region: 'USA', gender: 'boys', file: '/characters/boys/american.jpg' },
-  { id: 'russian', region: 'Russia', gender: 'boys', file: '/characters/boys/russian.jpg' },
+  // Girls (preset looks — cards show the cool name, region stays for prompt context only)
+  { id: 'indian', name: 'Aanya', region: 'India', gender: 'girls', file: '/characters/girls/indian.jpg' },
+  { id: 'chinese', name: 'Lina', region: 'China', gender: 'girls', file: '/characters/girls/chinese.jpg' },
+  { id: 'japanese', name: 'Sakura', region: 'Japan', gender: 'girls', file: '/characters/girls/japanese.jpg' },
+  { id: 'american', name: 'Aria', region: 'USA', gender: 'girls', file: '/characters/girls/american.jpg' },
+  { id: 'french', name: 'Camille', region: 'France', gender: 'girls', file: '/characters/girls/french.jpg' },
+  { id: 'german', name: 'Lena', region: 'Germany', gender: 'girls', file: '/characters/girls/german.jpg' },
+  { id: 'british', name: 'Amelia', region: 'UK', gender: 'girls', file: '/characters/girls/british.jpg' },
+  { id: 'spanish', name: 'Valentina', region: 'Spain', gender: 'girls', file: '/characters/girls/spanish.jpg' },
+  { id: 'turkish', name: 'Selin', region: 'Turkey', gender: 'girls', file: '/characters/girls/turkish.jpg' },
+  { id: 'egyptian', name: 'Nour', region: 'Egypt', gender: 'girls', file: '/characters/girls/egyptian.jpg' },
+  { id: 'greek', name: 'Daphne', region: 'Greece', gender: 'girls', file: '/characters/girls/greek.jpg' },
+  { id: 'mexican', name: 'Camila', region: 'Mexico', gender: 'girls', file: '/characters/girls/mexican.jpg' },
+  { id: 'russian', name: 'Anastasia', region: 'Russia', gender: 'girls', file: '/characters/girls/russian.jpg' },
+  { id: 'middleeastern', name: 'Yasmin', region: 'Middle East', gender: 'girls', file: '/characters/girls/middleeastern.jpg' },
+  { id: 'african', name: 'Amara', region: 'Africa', gender: 'girls', file: '/characters/girls/african.jpg' },
+  { id: 'asian', name: 'Hana', region: 'East Asia', gender: 'girls', file: '/characters/girls/asian.jpg' },
+  { id: 'scandinavian', name: 'Freya', region: 'Scandinavia', gender: 'girls', file: '/characters/girls/scandinavian.jpg' },
+  { id: 'latina', name: 'Isabella', region: 'Latin America', gender: 'girls', file: '/characters/girls/latina.jpg' },
+  // Boys (preset looks)
+  { id: 'indian', name: 'Arjun', region: 'India', gender: 'boys', file: '/characters/boys/indian.jpg' },
+  { id: 'european', name: 'Luca', region: 'Italy', gender: 'boys', file: '/characters/boys/european.jpg' },
+  { id: 'latin', name: 'Rafael', region: 'Brazil', gender: 'boys', file: '/characters/boys/latin.jpg' },
+  { id: 'african', name: 'Chidi', region: 'Nigeria', gender: 'boys', file: '/characters/boys/african.jpg' },
+  { id: 'asian', name: 'Junho', region: 'South Korea', gender: 'boys', file: '/characters/boys/asian.jpg' },
+  { id: 'middleeastern', name: 'Khalid', region: 'UAE', gender: 'boys', file: '/characters/boys/middleeastern.jpg' },
+  { id: 'chinese', name: 'Wei', region: 'China', gender: 'boys', file: '/characters/boys/chinese.jpg' },
+  { id: 'japanese', name: 'Kenji', region: 'Japan', gender: 'boys', file: '/characters/boys/japanese.jpg' },
+  { id: 'american', name: 'Ethan', region: 'USA', gender: 'boys', file: '/characters/boys/american.jpg' },
+  { id: 'russian', name: 'Dmitri', region: 'Russia', gender: 'boys', file: '/characters/boys/russian.jpg' },
+  // Daily forge characters (girls) — portraits from the daily AI forge
+  { id: 'veera', name: 'Veera', region: 'India', gender: 'girls', file: '/characters/trained/veera.jpg' },
+  { id: 'yuki', name: 'Yuki', region: 'Japan', gender: 'girls', file: '/characters/trained/yuki.jpg' },
+  { id: 'elena', name: 'Elena', region: 'Europe', gender: 'girls', file: '/characters/daily/elena.jpg' },
+  { id: 'anaya', name: 'Anaya', region: 'India', gender: 'girls', file: '/characters/daily/anaya.jpg' },
+  { id: 'mina', name: 'Mina', region: 'South Korea', gender: 'girls', file: '/characters/daily/mina.jpg' },
+  { id: 'sofia', name: 'Sofia', region: 'Europe', gender: 'girls', file: '/characters/trained/sofia.jpg' },
+  { id: 'zara', name: 'Zara', region: 'Brazil', gender: 'girls', file: '/characters/daily/zara.jpg' },
+  { id: 'ava', name: 'Ava', region: 'USA', gender: 'girls', file: '/characters/daily/ava.jpg' },
+  { id: 'nia', name: 'Nia', region: 'East Africa', gender: 'girls', file: '/characters/daily/nia.jpg' },
+  { id: 'layla', name: 'Layla', region: 'Middle East', gender: 'girls', file: '/characters/daily/layla.jpg' },
+  { id: 'mali', name: 'Mali', region: 'Thailand', gender: 'girls', file: '/characters/daily/mali.jpg' },
+  { id: 'elin', name: 'Elin', region: 'Sweden', gender: 'girls', file: '/characters/daily/elin.jpg' },
+  // Daily forge characters (boys)
+  { id: 'kofi', name: 'Kofi', region: 'Africa', gender: 'boys', file: '/characters/daily/kofi.jpg' },
+  { id: 'omar', name: 'Omar', region: 'Middle East', gender: 'boys', file: '/characters/daily/omar.jpg' },
+  { id: 'diego', name: 'Diego', region: 'Latin America', gender: 'boys', file: '/characters/daily/diego.jpg' },
 ];
 
 const NICHES = [
@@ -163,7 +181,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
     }
     setGenerating(true);
     try {
-      const prompt = `Write a short, engaging social media video script (30-45 seconds, 60-90 words) for an AI influencer named ${influencerName || selectedChar.region + ' beauty'} from ${selectedChar.region}. Niche: ${niche}. Topic: ${topic}. Language: ${language === 'hinglish' ? 'Hinglish (mix of Hindi and English, natural conversational)' : language}. Style: Hook in first line, conversational, energetic, ends with a call-to-action. No medical claims, no financial advice.`;
+      const prompt = `Write a short, engaging social media video script (30-45 seconds, 60-90 words) for an AI influencer named ${influencerName || selectedChar.name} from ${selectedChar.region}. Niche: ${niche}. Topic: ${topic}. Language: ${language === 'hinglish' ? 'Hinglish (mix of Hindi and English, natural conversational)' : language}. Style: Hook in first line, conversational, energetic, ends with a call-to-action. No medical claims, no financial advice.`;
       const res = await apiFetch('/api/enhance-prompt', {
         method: 'POST',
         body: JSON.stringify({ prompt }),
@@ -193,7 +211,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
     try {
       const style = VIDEO_STYLES.find(v => v.id === videoStyle) || VIDEO_STYLES[0];
       const nichePack = NICHE_PACKS[niche] || '';
-      const charName = influencerName || selectedChar.region + ' star';
+      const charName = influencerName || selectedChar.name;
       const prompt = `Generate 5 fresh short video motion prompts (one line each, numbered 1-5) for AI influencer "${charName}" from ${selectedChar.region}, niche: ${niche}. Character action: ${selectedAction}. Expression: ${selectedExpression}. Video style: ${style.label} — ${style.prompt}. ${nichePack ? 'Visual style: ' + nichePack + '.' : ''} Each prompt: describe the motion naturally, human-like, 5-6 seconds, vertical 9:16, photorealistic, natural skin texture with visible pores (NOT airbrushed/plastic), candid iPhone photo feel. Varied settings, no repetition.`;
       const res = await apiFetch('/api/enhance-prompt', {
         method: 'POST',
@@ -352,8 +370,8 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
                 onClick={() => setSelectedChar(c)}
                 className={`rounded-xl overflow-hidden border-2 transition ${selectedChar?.file === c.file ? 'border-purple-600 ring-2 ring-purple-300' : 'border-transparent'}`}
               >
-                <img src={c.file} alt={c.region} className="w-full aspect-[3/4] object-cover" />
-                <div className="text-xs py-1 bg-white/10 font-medium">{c.region}</div>
+                <img src={c.file} alt={c.name} className="w-full aspect-[3/4] object-cover" />
+                <div className="text-xs py-1 bg-white/10 font-medium">{c.name}</div>
               </button>
             ))}
           </div>
@@ -459,7 +477,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
             <div className="flex items-center gap-3 bg-white/5 rounded-xl p-3">
               <img src={selectedChar.file} alt="" className="w-12 h-12 rounded-full object-cover" />
               <div>
-                <div className="font-semibold">{influencerName || selectedChar.region + ' star'}</div>
+                <div className="font-semibold">{influencerName || selectedChar.name}</div>
                 <div className="text-xs text-gray-400">{niche} • {selectedChar.region}</div>
               </div>
             </div>
@@ -479,7 +497,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
                 <button
                   key={t.name}
                   onClick={() => {
-                    const name = influencerName || selectedChar?.region + ' star' || 'Star';
+                    const name = influencerName || selectedChar?.name || 'Star';
                     setScript(`HOOK: ${t.hook}\n\n${t.script.replace('[NAME]', name)}`);
                     notify('success', t.name + ' template lagaya!');
                   }}
