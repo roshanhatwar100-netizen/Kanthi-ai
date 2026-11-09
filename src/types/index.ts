@@ -3,8 +3,6 @@ export interface User {
   email: string;
   displayName: string;
   photoURL?: string;
-  credits: number;
-  plan: 'free' | 'creator' | 'pro';
   role: 'user' | 'admin';
   createdAt: string;
   updatedAt?: string;
@@ -24,7 +22,6 @@ export interface Generation {
   mediaUrl?: string;
   duration?: string;
   audioVoice?: string;
-  creditsUsed: number;
   status: 'completed' | 'failed' | 'processing';
   createdAt: string;
   isPublic?: boolean;
@@ -44,34 +41,6 @@ export interface Project {
   updatedAt: string;
 }
 
-export interface CreditTransaction {
-  transactionId: string;
-  uid: string;
-  type: 'purchase' | 'generation' | 'refund' | 'bonus' | 'subscription';
-  amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  reason: string;
-  generationId?: string;
-  paymentId?: string;
-  createdAt: string;
-}
-
-export interface PlanConfig {
-  id: 'free' | 'creator' | 'pro';
-  name: string;
-  priceINR: number;
-  monthlyCredits: number;
-  features: string[];
-}
-
-export interface CreditPackConfig {
-  id: string;
-  name: string;
-  credits: number;
-  priceINR: number;
-}
-
 export interface ModelConfig {
   id: string;
   name: string;
@@ -86,10 +55,5 @@ export interface ServerConfig {
   appName: string;
   tagline: string;
   hasGeminiKey: boolean;
-  hasRazorpayConfigured: boolean;
-  razorpayKeyId?: string | null;
-  creditCosts: Record<string, number>;
-  plans: Record<string, PlanConfig>;
-  creditPacks: Record<string, CreditPackConfig>;
   supportedModels: ModelConfig[];
 }
