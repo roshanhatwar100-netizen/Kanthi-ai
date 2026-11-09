@@ -1,12 +1,11 @@
 import React from 'react';
-import { Sparkles, Zap, ShieldAlert, LogIn, Menu, ShieldCheck } from 'lucide-react';
+import { ShieldAlert, LogIn, Menu, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { TabType } from './Sidebar';
 
 interface NavbarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
-  onOpenPricing: () => void;
   onOpenAuth: () => void;
   isLanding?: boolean;
 }
@@ -14,7 +13,6 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   onSelectTab,
-  onOpenPricing,
   onOpenAuth,
   isLanding
 }) => {
@@ -50,24 +48,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Right side actions */}
       <div className="flex items-center gap-2.5 sm:gap-4">
-        {/* Credit count pill */}
-        {user ? (
-          user.role === 'admin' ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-sm">
-              <span className="text-amber-400 font-extrabold text-sm">∞</span>
-              <span>Admin Unlimited</span>
-            </div>
-          ) : (
-            <button
-              onClick={onOpenPricing}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#161B29] border border-amber-500/30 hover:border-amber-400 text-amber-300 text-xs font-bold transition-all shadow-sm"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400 animate-pulse" />
-              <span>{user.credits}</span>
-              <span className="text-gray-400 font-normal hidden sm:inline">credits</span>
-            </button>
-          )
-        ) : (
+        {/* Sign In (guests only) */}
+        {!user && (
           <button
             onClick={onOpenAuth}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-200 text-xs font-bold transition-all"
@@ -76,16 +58,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>Sign In</span>
           </button>
         )}
-
-        {/* Upgrade / Pricing CTA */}
-        <button
-          onClick={onOpenPricing}
-          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 transition-all active:scale-95"
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Upgrade Plan</span>
-          <span className="sm:hidden">Get Credits</span>
-        </button>
 
         {/* Profile Avatar / Trigger */}
         {user && (
