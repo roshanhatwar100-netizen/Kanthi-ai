@@ -1,17 +1,17 @@
 # KANTHI AI
 
-KANTHI AI is a full-stack AI creator platform built for Google AI Studio / Cloud Run, with Gemini generation, Firebase Authentication, server-side credits, and Razorpay payments.
+KANTHI AI is a full-stack AI creator platform built for Google AI Studio / Cloud Run, with Gemini generation and Firebase Authentication. Generation is free — no payments or credits.
 
 ## Important security notes
 
-This repository is the hardened beta build. It intentionally does **not** contain payment secrets, seeded admin accounts, or demo-account authentication bypasses.
+This repository is the hardened beta build. It intentionally does **not** contain seeded admin accounts or demo-account authentication bypasses.
 
-Before accepting real payments:
+Before going live:
 
 1. If a secret was ever committed or shared from an older build, revoke/rotate it in the provider dashboard.
 2. Configure Firebase Authentication and the Firebase Admin service credentials.
 3. Set `ADMIN_UIDS` to the Firebase Auth UID(s) that should have admin access.
-4. Configure Gemini and Razorpay only through environment variables / deployment secrets.
+4. Configure Gemini only through environment variables / deployment secrets.
 5. Deploy with HTTPS.
 
 ## Required environment variables
@@ -24,9 +24,6 @@ Copy `.env.example` to `.env`.
 - `FIREBASE_PROJECT_ID`
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`
-- `RAZORPAY_KEY_ID`
-- `RAZORPAY_KEY_SECRET`
-- `RAZORPAY_WEBHOOK_SECRET`
 - `ADMIN_UIDS`
 - `PORT` (default `3000`)
 
@@ -61,26 +58,16 @@ The browser authenticates with Firebase and sends a Firebase ID token as a Beare
 
 The server no longer trusts a client-supplied `x-user-id` header.
 
-## Payments
-
-Razorpay order details are created server-side. During verification the server checks the Razorpay order's UID/product/type metadata before granting credits.
-
-Webhook requests use the raw request body for signature verification.
-
-The current plan-purchase flow is **not a recurring subscription implementation**. Treat Creator/Pro purchases as manually renewable until Razorpay Subscriptions are explicitly implemented.
-
 ## Current product modules
 
 - Firebase authentication
 - AI image generation
 - Prompt enhancement
-- Credit accounting
 - History
 - Favorites
 - Projects
 - Explore/community
 - AI video/audio modules where their configured provider APIs are available
-- Razorpay credit purchases
 - Admin dashboard
 
 ## Before launch
