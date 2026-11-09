@@ -19,8 +19,6 @@ interface AuthContextType {
   loginWithEmail: (email: string, pass: string) => Promise<void>;
   signupWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
-  refreshCredits: () => Promise<void>;
-  updateLocalCredits: (newCredits: number) => void;
   switchDemoUser: (role: 'admin' | 'creator' | 'user') => Promise<void>;
 }
 
@@ -163,25 +161,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
 
-  const refreshCredits = async () => {
-    if (!user) return;
-    try {
-      const res = await apiFetch('/api/user/credits', {
-        headers: {}
-      });
-      const data = await res.json();
-      if (data.credits !== undefined) {
-        setUser(prev => prev ? { ...prev, credits: data.credits, plan: data.plan, role: data.role } : null);
-      }
-    } catch (err) {
-      console.error('Failed to refresh credits:', err);
-    }
-  };
-
-  const updateLocalCredits = (newCredits: number) => {
-    setUser(prev => prev ? { ...prev, credits: newCredits } : null);
-  };
-
   const switchDemoUser = async (_role: 'admin' | 'creator' | 'user') => {
     throw new Error('Demo accounts are disabled in production.');
   };
@@ -195,8 +174,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loginWithEmail,
         signupWithEmail,
         logout,
-        refreshCredits,
-        updateLocalCredits,
         switchDemoUser
       }}
     >
