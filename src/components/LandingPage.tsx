@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useCountry, usdApprox } from '../hooks/useCountry';
 import {
   Sparkles,
   ArrowRight,
@@ -8,7 +7,6 @@ import {
   Palette,
   Film,
   Zap,
-  CheckCircle,
   HelpCircle,
   ChevronDown,
   Layers,
@@ -21,16 +19,13 @@ import {
 interface LandingPageProps {
   onStartCreating: () => void;
   onExplore: () => void;
-  onOpenPricing: () => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({
   onStartCreating,
-  onExplore,
-  onOpenPricing
+  onExplore
 }) => {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
-  const { isIndia } = useCountry();
 
   const faqs = [
     {
@@ -38,23 +33,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({
       a: 'KANTHI AI is a cutting-edge creative AI platform engineered for artists, content creators, and storytellers to generate studio-grade images, anime, character sheets, and visual worlds using state-of-the-art Google Gemini and Imagen models.'
     },
     {
-      q: 'How does the credit system work?',
-      a: 'Every generation deducts credits server-side based strictly on output resolution: 1K resolution costs 5 credits, 2K costs 10 credits, and 4K costs 15 credits. New users receive 50 free credits upon joining! If a generation ever fails, your reserved credits are automatically restored.'
-    },
-    {
       q: 'Which AI models power KANTHI AI?',
       a: 'We utilize Google Gemini 3.1 Flash Image, Gemini 3.1 Flash-Lite Image, Gemini 2.5 Flash Image, and Imagen 3.0 Core. For prompt enhancement, our system utilizes Gemini 2.5 Flash.'
     },
     {
       q: 'Can I use generated images commercially?',
-      a: 'Yes! Creators on the Creator and Pro plans enjoy full commercial rights to monetize their AI creations on YouTube, Instagram, prints, merchandise, and client projects.'
+      a: 'Yes! You can use your AI creations commercially — on YouTube, Instagram, prints, merchandise, and client projects.'
     },
-    {
-      q: isIndia ? 'Which payment methods are supported in India?' : 'Which payment methods are supported?',
-      a: isIndia
-        ? 'We integrate with Razorpay to support UPI (Google Pay, PhonePe, Paytm), Indian Debit/Credit cards, Netbanking, and Wallets in Indian Rupees (₹).'
-        : 'We use Razorpay to accept international credit and debit cards from anywhere in the world. Payments are charged in Indian Rupees (₹) and your bank converts the amount to your local currency.'
-    }
   ];
 
   return (
@@ -246,144 +231,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* Pricing Preview Section */}
-      <section className="py-20 px-4 md:px-8 border-t border-[#181C26] bg-[#0A0C11]">
-        <div className="max-w-5xl mx-auto text-center">
-          <span className="text-xs font-extrabold uppercase tracking-widest text-purple-400 mb-3 block">
-            Transparent Pricing
-          </span>
-          <h3 className="text-3xl sm:text-4xl font-extrabold text-white font-display mb-4">
-            Simple plans for every stage of your creative journey
-          </h3>
-          <p className="text-gray-400 max-w-xl mx-auto mb-12">
-            Start for free with 50 credits, then upgrade as your production scales.{' '}
-            {isIndia
-              ? 'Pay in INR with Razorpay UPI and cards.'
-              : 'Pay with your international card via Razorpay — charged in INR, converted by your bank.'}
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
-            {/* Free */}
-            <div className="p-6 rounded-2xl bg-[#10131C] border border-[#1F2433] flex flex-col justify-between">
-              <div>
-                <div className="text-xs uppercase font-bold text-gray-400 mb-2">Starter</div>
-                <h4 className="text-2xl font-black text-white mb-1">FREE</h4>
-                <div className="text-3xl font-extrabold text-white font-display mb-6">₹0</div>
-                <ul className="space-y-3 text-xs text-gray-300 mb-8">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>50 starter credits</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Basic generation</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Personal projects</span>
-                  </li>
-                </ul>
-              </div>
-              <button
-                onClick={onStartCreating}
-                className="w-full py-3 rounded-xl bg-[#1A1F2C] hover:bg-[#252C3E] text-white text-xs font-bold transition-all text-center"
-              >
-                Get Started
-              </button>
-            </div>
-
-            {/* Creator */}
-            <div className="p-6 rounded-2xl bg-gradient-to-b from-[#181528] to-[#10131C] border-2 border-purple-500/60 shadow-xl shadow-purple-900/20 flex flex-col justify-between relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] font-black uppercase tracking-wider">
-                Most Popular
-              </span>
-              <div>
-                <div className="text-xs uppercase font-bold text-purple-400 mb-2">Creator</div>
-                <h4 className="text-2xl font-black text-white mb-1">CREATOR</h4>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-extrabold text-white font-display">₹299</span>
-                  <span className="text-xs text-gray-400">/month</span>
-                </div>
-                {!isIndia && (
-                  <div className="text-xs text-gray-400 mb-5">{usdApprox(299)} USD approx.</div>
-                )}
-                <ul className="space-y-3 text-xs text-gray-300 mb-8">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span className="font-semibold text-white">400 monthly credits</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Higher limits</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Projects & collections</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Priority generation</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-purple-400 shrink-0" />
-                    <span>Commercial creation</span>
-                  </li>
-                </ul>
-              </div>
-              <button
-                onClick={onOpenPricing}
-                className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold transition-all shadow-lg text-center"
-              >
-                Choose Creator
-              </button>
-            </div>
-
-            {/* Pro */}
-            <div className="p-6 rounded-2xl bg-[#10131C] border border-[#1F2433] flex flex-col justify-between">
-              <div>
-                <div className="text-xs uppercase font-bold text-cyan-400 mb-2">Studio & Pro</div>
-                <h4 className="text-2xl font-black text-white mb-1">PRO</h4>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-3xl font-extrabold text-white font-display">₹799</span>
-                  <span className="text-xs text-gray-400">/month</span>
-                </div>
-                {!isIndia && (
-                  <div className="text-xs text-gray-400 mb-5">{usdApprox(799)} USD approx.</div>
-                )}
-                <ul className="space-y-3 text-xs text-gray-300 mb-8">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span className="font-semibold text-white">1,000 monthly credits</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span>Highest concurrency limits</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span>Priority 4K generation</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span>Advanced features</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-cyan-400 shrink-0" />
-                    <span>Commercial creation</span>
-                  </li>
-                </ul>
-              </div>
-              <button
-                onClick={onOpenPricing}
-                className="w-full py-3 rounded-xl bg-[#1A1F2C] hover:bg-[#252C3E] text-white text-xs font-bold transition-all text-center"
-              >
-                Choose Pro
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
       <section className="py-20 px-4 md:px-8 border-t border-[#181C26] bg-[#08090C]">
         <div className="max-w-3xl mx-auto">
@@ -392,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Frequently Asked Questions
             </h3>
             <p className="text-gray-400 text-sm">
-              Everything you need to know about KANTHI AI creative features and billing.
+              Everything you need to know about KANTHI AI creative features.
             </p>
           </div>
 
@@ -448,9 +295,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </button>
             <button onClick={onExplore} className="hover:text-white transition-colors">
               Explore
-            </button>
-            <button onClick={onOpenPricing} className="hover:text-white transition-colors">
-              Pricing
             </button>
             <span>© {new Date().getFullYear()} KANTHI AI. All rights reserved.</span>
           </div>

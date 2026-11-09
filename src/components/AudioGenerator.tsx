@@ -7,7 +7,6 @@ import {
   Pause,
   Download,
   Sparkles,
-  Zap,
   Volume2,
   VolumeX,
   Repeat,
@@ -15,7 +14,6 @@ import {
   FolderPlus,
   Radio,
   Sliders,
-  ShieldCheck,
   Disc
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -23,20 +21,17 @@ import { useAuth } from '../context/AuthContext';
 import { Generation, Project } from '../types';
 
 interface AudioGeneratorProps {
-  onOpenPricing: () => void;
   onOpenAuth: () => void;
   onGenerationCreated?: (gen: Generation) => void;
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
 }
 
 export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
-  onOpenPricing,
   onOpenAuth,
   onGenerationCreated,
   notify
 }) => {
-  const { user, refreshCredits, updateLocalCredits } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { user } = useAuth();
 
   const [mode, setMode] = useState<'speech' | 'music'>('speech');
   const [prompt, setPrompt] = useState('');
@@ -53,8 +48,6 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const currentCost = isAdmin ? 0 : 8;
 
   const voices = [
     { id: 'studio_female', name: 'Studio Female', desc: 'Warm, articulate & inspiring narrator' },
@@ -92,12 +85,6 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
       return;
     }
 
-    if (!isAdmin && user.credits < currentCost) {
-      notify('error', `You need ${currentCost} credits for audio generation.`, 'Insufficient Credits');
-      onOpenPricing();
-      return;
-    }
-
     setIsGenerating(true);
 
     try {
@@ -118,13 +105,10 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.creditsRestored) refreshCredits();
         throw new Error(data.error || 'Audio generation failed.');
       }
 
       setCurrentGeneration(data.generation);
-      updateLocalCredits(data.creditsRemaining);
-      refreshCredits();
 
       if (onGenerationCreated) onGenerationCreated(data.generation);
 
@@ -134,7 +118,7 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
 
       notify(
         'success',
-        isAdmin ? 'Audio synthesized! (0 credits - Admin Exemption)' : `Audio generated (${data.cost} credits used).`,
+        'Audio generated.',
         'Audio Track Rendered'
       );
     } catch (err: any) {
@@ -185,22 +169,6 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {isAdmin ? (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs font-bold">
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span>Admin Unlimited: 0 cr</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#121520] border border-[#23293D] text-xs">
-              <span className="text-gray-400">Audio Cost:</span>
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 fill-amber-400" />
-                {currentCost} credits
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Mode Switcher Tabs */}
@@ -341,7 +309,7 @@ export const AudioGenerator: React.FC<AudioGeneratorProps> = ({
             ) : (
               <>
                 <Disc className="w-5 h-5" />
-                <span>Generate Audio ({currentCost} Credits)</span>
+                <span>Generate Audio</span>
               </>
             )}
           </button>

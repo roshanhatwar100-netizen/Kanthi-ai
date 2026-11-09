@@ -202,7 +202,6 @@ export const HistoryView: React.FC<HistoryViewProps> = ({ notify, onSelectPrompt
                 </p>
                 <div className="flex items-center justify-between text-[10px] text-gray-500 pt-1 border-t border-white/5">
                   <span>{new Date(gen.createdAt).toLocaleDateString()}</span>
-                  <span className="text-purple-400 font-medium">{gen.creditsUsed} cr</span>
                 </div>
               </div>
             </div>

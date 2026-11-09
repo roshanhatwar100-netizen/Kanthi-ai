@@ -5,14 +5,6 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '../api';
 import { Generation } from '../types';
-import { useAuth } from '../context/AuthContext';
-import { spendCredits, refundCredits } from './ImageAnimator';
-
-// 5 credits per 30 seconds of rendered video (minimum 5).
-export function studioCost(totalSec: number): number {
-  return Math.max(5, Math.ceil(totalSec / 30) * 5);
-}
-
 interface Scene {
   id: string;
   imageSrc: string | null;
@@ -23,7 +15,6 @@ interface Scene {
 
 interface FacelessStudioProps {
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
-  onOpenPricing?: () => void;
 }
 
 const MOTIONS = ['zoom-in', 'zoom-out', 'pan-left', 'pan-right'] as const;
@@ -100,8 +91,7 @@ function formatClock(totalSec: number) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPricing }) => {
-  const { user, refreshCredits } = useAuth();
+export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify }) => {
   const [scenes, setScenes] = useState<Scene[]>([newScene(), newScene()]);
   const [library, setLibrary] = useState<Generation[]>([]);
   const [aspect, setAspect] = useState<'16:9' | '9:16'>('16:9');
@@ -175,19 +165,12 @@ export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPr
       return;
     }
     if (isRendering) return;
-    // Charge credits before rendering (5 per 30s, min 5).
-    const totalForCost = ready.reduce((a, s) => a + s.durationSec, 0);
-    const paid = await spendCredits('studio-render', totalForCost, notify, onOpenPricing);
-    if (!paid) return;
-    refreshCredits().catch(() => {});
     const canvas = canvasRef.current;
     if (!canvas) {
-      refundCredits('studio-render', totalForCost, notify).catch(() => {});
       return;
     }
     const ctx = canvas.getContext('2d');
     if (!ctx) {
-      refundCredits('studio-render', totalForCost, notify).catch(() => {});
       return;
     }
 
@@ -203,8 +186,6 @@ export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPr
       }
       const renderScenes = ready.filter((s) => loaded.has(s.id));
       if (renderScenes.length === 0) {
-        // All images failed to load after credits were charged — return them.
-        refundCredits('studio-render', totalForCost, notify).catch(() => {});
         return;
       }
       const total = renderScenes.reduce((a, s) => a + s.durationSec, 0);
@@ -252,12 +233,10 @@ export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPr
       setVideoUrl(URL.createObjectURL(blob));
       setIsRendering(false);
       setRenderProgress(0);
-      notify('success', `Your ${formatClock(total)} video is ready (${studioCost(total)} credits used).`, 'Video rendered');
+      notify('success', `Your ${formatClock(total)} video is ready.`, 'Video rendered');
     } catch (err: any) {
       setIsRendering(false);
       notify('error', err.message || 'Rendering failed in this browser.', 'Could not render');
-      // Credits were already charged — return them since no video was produced.
-      refundCredits('studio-render', totalForCost, notify).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scenes, isRendering, aspect, notify, loadImage]);
@@ -268,8 +247,7 @@ export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPr
         <Clapperboard className="w-4 h-4 shrink-0" />
         <span>
           <strong>Faceless Video Studio.</strong> Stack scenes with images, captions and motion,
-          then render one long video (5 min, 45 min, 2 hr — any length) right in your browser.
-          Only <strong>5 credits per 30 seconds</strong>.
+          then render one long video (5 min, 45 min, 2 hr — any length) right in your browser, free.
         </span>
       </div>
 
@@ -412,7 +390,7 @@ export const FacelessStudio: React.FC<FacelessStudioProps> = ({ notify, onOpenPr
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 font-semibold text-sm text-black"
           >
             {isRendering ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {isRendering ? 'Rendering…' : `Render ${formatClock(totalSec)} Video (${studioCost(totalSec)} credits)`}
+            {isRendering ? 'Rendering…' : `Render ${formatClock(totalSec)} Video`}
           </button>
           {videoUrl && (
             <a

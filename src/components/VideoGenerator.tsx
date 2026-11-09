@@ -5,7 +5,6 @@ import { FacelessStudio } from './FacelessStudio';
 import {
   Video,
   Sparkles,
-  Zap,
   Play,
   Pause,
   Download,
@@ -18,8 +17,7 @@ import {
   Volume2,
   VolumeX,
   Layers,
-  Repeat,
-  ShieldCheck
+  Repeat
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { useAuth } from '../context/AuthContext';
@@ -29,7 +27,6 @@ export type VideoDuration = '4s' | '6s' | '8s';
 
 interface VideoGeneratorProps {
   initialPrompt?: string;
-  onOpenPricing: () => void;
   onOpenAuth: () => void;
   onGenerationCreated?: (gen: Generation) => void;
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
@@ -37,13 +34,11 @@ interface VideoGeneratorProps {
 
 export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   initialPrompt = '',
-  onOpenPricing,
   onOpenAuth,
   onGenerationCreated,
   notify
 }) => {
-  const { user, refreshCredits, updateLocalCredits } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const { user } = useAuth();
 
   const [prompt, setPrompt] = useState(initialPrompt);
   const [negativePrompt, setNegativePrompt] = useState('');
@@ -67,20 +62,15 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isLooping, setIsLooping] = useState(true);
 
-  // Mode: 'animate' = free browser-based image animation, 'veo' = server-side AI video (needs billing),
+  // Mode: 'animate' = free browser-based image animation, 'veo' = server-side AI video,
   // 'studio' = free long-form faceless video builder.
   const [mode, setMode] = useState<'animate' | 'veo' | 'studio'>('animate');
 
-  const durationOptions: { id: VideoDuration; label: string; sub: string; cr: number }[] = [
-    { id: '4s', label: '4s', sub: 'Quick', cr: 60 },
-    { id: '6s', label: '6s', sub: 'Reel', cr: 75 },
-    { id: '8s', label: '8s', sub: 'Cinematic', cr: 90 }
+  const durationOptions: { id: VideoDuration; label: string; sub: string }[] = [
+    { id: '4s', label: '4s', sub: 'Quick' },
+    { id: '6s', label: '6s', sub: 'Reel' },
+    { id: '8s', label: '8s', sub: 'Cinematic' }
   ];
-
-  // Credit cost (Admin has 0 cost exemption!)
-  const selectedDurationOpt = durationOptions.find(o => o.id === duration);
-  const baseCost = selectedDurationOpt?.cr || 10;
-  const currentCost = isAdmin ? 0 : baseCost;
 
   const stylePresets = [
     'Cinematic 4K',
@@ -128,12 +118,6 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
   const handleGenerateVideo = async () => {
     if (!user) { onOpenAuth(); return; }
     if (!prompt.trim()) { notify('info', 'Please describe the scene to animate into video.', 'Prompt Required'); return; }
-    if (!isAdmin && user.credits < currentCost) {
-      notify('error', `You need ${currentCost} credits for video generation.`, 'Insufficient Credits');
-      onOpenPricing();
-      return;
-    }
-
     setIsGenerating(true);
     setGenerationStepText('Starting Google Veo 3.1 render...');
 
@@ -153,13 +137,10 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.creditsRestored) refreshCredits();
         throw new Error(data.error || 'Video generation failed to start.');
       }
 
       setCurrentGeneration(data.generation);
-      updateLocalCredits(data.creditsRemaining);
-      refreshCredits();
 
       let generation = data.generation;
       for (let attempt = 0; attempt < 36 && generation.status === 'processing'; attempt++) {
@@ -171,8 +152,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
         generation = statusData.generation || generation;
         setCurrentGeneration(generation);
         if (statusData.status === 'failed' || generation.status === 'failed') {
-          refreshCredits();
-          throw new Error(statusData.error || 'Veo video generation failed. Your credits were restored.');
+          throw new Error(statusData.error || 'Veo video generation failed.');
         }
       }
 
@@ -181,7 +161,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
       setIsFavorited(false);
       if (onGenerationCreated) onGenerationCreated(generation);
       try { confetti({ particleCount: 80, spread: 65, origin: { y: 0.6 } }); } catch {}
-      notify('success', isAdmin ? 'Video generated! (0 credits deducted - Admin Exemption)' : `Video generated successfully (${data.cost} credits used).`, 'Motion Render Complete');
+      notify('success', 'Video generated successfully.', 'Motion Render Complete');
     } catch (err: any) {
       notify('error', err.message || 'Video generation encountered an error.', 'Video Notice');
     } finally {
@@ -221,23 +201,6 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
           </p>
         </div>
 
-        {/* Cost & Admin Exemption Badge */}
-        <div className="flex items-center gap-2">
-          {isAdmin ? (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-lg">
-              <ShieldCheck className="w-4 h-4 text-purple-400" />
-              <span>Admin Unlimited: 0 cr</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#121520] border border-[#23293D] text-xs">
-              <span className="text-gray-400">Video Cost:</span>
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 fill-amber-400" />
-                {currentCost} credits
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Mode tabs */}
@@ -250,7 +213,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               : 'border-[#23293D] text-gray-400 hover:border-white/30'
           }`}
         >
-          Animate Image <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">5 cr</span>
+          Animate Image <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Free</span>
         </button>
         <button
           onClick={() => setMode('veo')}
@@ -270,14 +233,14 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
               : 'border-[#23293D] text-gray-400 hover:border-white/30'
           }`}
         >
-          Long Video Studio <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">5+ cr</span>
+          Long Video Studio <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">Free</span>
         </button>
       </div>
 
       {mode === 'animate' ? (
-        <ImageAnimator notify={notify} onOpenPricing={onOpenPricing} />
+        <ImageAnimator notify={notify} />
       ) : mode === 'studio' ? (
-        <FacelessStudio notify={notify} onOpenPricing={onOpenPricing} />
+        <FacelessStudio notify={notify} />
       ) : (
       <>
       {/* Main Grid */}
@@ -420,9 +383,6 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
                   >
                     <div className="font-extrabold">{opt.label}</div>
                     <div className="text-[9px] text-gray-400 font-normal">{opt.sub}</div>
-                    <span className="block text-[8px] text-amber-400 font-semibold mt-0.5">
-                      {isAdmin ? '0 cr' : `${opt.cr} cr`}
-                    </span>
                   </button>
                 ))}
               </div>
@@ -512,7 +472,7 @@ export const VideoGenerator: React.FC<VideoGeneratorProps> = ({
             ) : (
               <>
                 <Video className="w-5 h-5" />
-                <span>Generate Video ({currentCost} Credits)</span>
+                <span>Generate Video</span>
               </>
             )}
           </button>

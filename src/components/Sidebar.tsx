@@ -7,15 +7,11 @@ import {
   FolderKanban,
   History,
   Heart,
-  CreditCard,
   Settings,
   ShieldCheck,
   Sparkles,
-  Zap,
   LogOut,
-  ChevronRight,
-  Layers,
-  Infinity as InfinityIcon
+  Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -29,17 +25,15 @@ export type TabType =
   | 'projects'
   | 'history'
   | 'favorites'
-  | 'pricing'
   | 'settings'
   | 'admin';
 
 interface SidebarProps {
   currentTab: TabType;
   onSelectTab: (tab: TabType) => void;
-  onOpenPricing: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, onOpenPricing }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab }) => {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'admin';
 
@@ -53,7 +47,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, onOpe
     { id: 'projects' as TabType, label: 'Projects', icon: FolderKanban },
     { id: 'history' as TabType, label: 'History', icon: History },
     { id: 'favorites' as TabType, label: 'Favorites', icon: Heart },
-    { id: 'pricing' as TabType, label: 'Pricing & Plans', icon: CreditCard },
     { id: 'settings' as TabType, label: 'Settings', icon: Settings },
   ];
 
@@ -149,57 +142,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentTab, onSelectTab, onOpe
           </div>
         )}
       </nav>
-
-      {/* Credit Balance & Refill Card */}
-      <div className="p-3 mx-3 mb-2 rounded-2xl bg-gradient-to-b from-[#161A26] to-[#10131C] border border-[#232838] relative overflow-hidden group">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-purple-600/10 rounded-full blur-xl group-hover:bg-purple-600/20 transition-all pointer-events-none" />
-
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-300">
-            <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>Creative Credits</span>
-          </div>
-          <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-white/5 text-gray-300 border border-white/10">
-            {isAdmin ? 'ROOT ADMIN' : (user?.plan || 'Free')}
-          </span>
-        </div>
-
-        {isAdmin ? (
-          <div className="mb-2.5">
-            <div className="flex items-center gap-1.5 text-purple-300">
-              <InfinityIcon className="w-6 h-6 animate-pulse" />
-              <span className="text-lg font-black tracking-tight">Unlimited (Admin)</span>
-            </div>
-            <div className="text-[10px] text-gray-400 mt-0.5">Zero credits deducted on any engine</div>
-          </div>
-        ) : (
-          <div className="flex items-baseline gap-1 mb-2.5">
-            <span className="text-2xl font-extrabold text-white tracking-tight font-display">
-              {user?.credits ?? 0}
-            </span>
-            <span className="text-xs text-gray-400">credits left</span>
-          </div>
-        )}
-
-        {isAdmin ? (
-          <button
-            onClick={() => onSelectTab('admin')}
-            className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-xs font-bold transition-all"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-            <span>Admin Control Panel</span>
-          </button>
-        ) : (
-          <button
-            onClick={onOpenPricing}
-            className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-purple-700 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-bold shadow-lg shadow-purple-600/20 transition-all active:scale-[0.98]"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Refill & Upgrade</span>
-            <ChevronRight className="w-3 h-3 ml-auto opacity-70" />
-          </button>
-        )}
-      </div>
 
       {/* User Profile Footer */}
       <div className="p-3 border-t border-[#1C202C] bg-[#0A0C11] flex items-center justify-between">

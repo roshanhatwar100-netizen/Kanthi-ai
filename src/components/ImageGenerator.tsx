@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Wand2,
   Sparkles,
-  Zap,
   Download,
   Heart,
   Share2,
@@ -28,7 +27,6 @@ interface ImageGeneratorProps {
   initialPrompt?: string;
   initialStyle?: string;
   initialAspectRatio?: string;
-  onOpenPricing: () => void;
   onOpenAuth: () => void;
   onGenerationCreated?: (gen: Generation) => void;
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
@@ -38,12 +36,11 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
   initialPrompt = '',
   initialStyle = '',
   initialAspectRatio = '1:1',
-  onOpenPricing,
   onOpenAuth,
   onGenerationCreated,
   notify
 }) => {
-  const { user, refreshCredits, updateLocalCredits } = useAuth();
+  const { user } = useAuth();
 
   // Generator inputs
   const [prompt, setPrompt] = useState(initialPrompt);
@@ -66,14 +63,6 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
   const [isFavorited, setIsFavorited] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
 
-  // Resolution credit pricing map
-  const isAdmin = user?.role === 'admin';
-  const costMap: Record<string, number> = {
-    '1K': 5,
-    '2K': 10,
-    '4K': 15,
-  };
-  const currentCost = isAdmin ? 0 : (costMap[resolution] || 5);
 
   const stylePresets = [
     { label: 'None', suffix: '' },
@@ -150,18 +139,8 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
       return;
     }
 
-    if (!isAdmin && user.credits < currentCost) {
-      notify(
-        'error',
-        `You need ${currentCost} credits for ${resolution} generation, but have ${user.credits}. Please refill.`,
-        'Insufficient Credits'
-      );
-      onOpenPricing();
-      return;
-    }
-
     setIsGenerating(true);
-    setGenerationStepText('Checking content safety & reserving credits...');
+    setGenerationStepText('Checking content safety...');
 
     // Apply selected style preset if present
     let finalPrompt = prompt.trim();
@@ -197,9 +176,6 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
       const data = await res.json();
 
       if (!res.ok) {
-        if (data.creditsRestored) {
-          refreshCredits();
-        }
         throw new Error(data.error || 'Generation failed.');
       }
 
@@ -207,8 +183,6 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
       setCurrentGeneration(data.generation);
       setIsFavorited(false);
       setIsPublished(false);
-      updateLocalCredits(data.creditsRemaining);
-      refreshCredits();
 
       if (onGenerationCreated) {
         onGenerationCreated(data.generation);
@@ -225,12 +199,12 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
 
       notify(
         'success',
-        `Render completed successfully (${data.cost} credits used).`,
+        'Render completed successfully.',
         'Masterpiece Created'
       );
     } catch (err: any) {
       console.error(err);
-      notify('error', err.message || 'Generation failed. Reserved credits were restored.', 'Generation Notice');
+      notify('error', err.message || 'Generation failed.', 'Generation Notice');
     } finally {
       setIsGenerating(false);
       setGenerationStepText('');
@@ -319,23 +293,6 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
           </p>
         </div>
 
-        {/* Cost & Balance quick badge */}
-        <div className="flex items-center gap-3">
-          {isAdmin ? (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-purple-950/40 border border-purple-500/40 text-purple-200 text-xs font-bold shadow-lg">
-              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>Admin Unlimited: 0 cr</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#121520] border border-[#23293D] text-xs">
-              <span className="text-gray-400">Resolution Cost:</span>
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <Zap className="w-3.5 h-3.5 fill-amber-400" />
-                {currentCost} credits
-              </span>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Main Two-Column Layout */}
@@ -550,7 +507,6 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
                     }`}
                   >
                     <span className="text-sm font-extrabold">{res}</span>
-                    <span className="text-[10px] text-amber-400 font-semibold">{costMap[res]} cr</span>
                   </button>
                 ))}
               </div>
@@ -626,7 +582,7 @@ export const ImageGenerator: React.FC<ImageGeneratorProps> = ({
             ) : (
               <>
                 <Sparkles className="w-5 h-5" />
-                <span>Generate Image ({currentCost} Credits)</span>
+                <span>Generate Image</span>
               </>
             )}
           </button>

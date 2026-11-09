@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Film, Download, Image as ImageIcon, Upload, Play, Loader2, Check } from 'lucide-react';
 import { apiFetch } from '../api';
 import { Generation } from '../types';
-import { useAuth } from '../context/AuthContext';
 
 export type MotionPreset = 'zoom-in' | 'zoom-out' | 'pan-left' | 'pan-right';
 
@@ -15,62 +14,6 @@ const MOTIONS: { id: MotionPreset; label: string; hint: string }[] = [
 
 interface ImageAnimatorProps {
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
-  onOpenPricing?: () => void;
-}
-
-const ANIMATE_COST = 5;
-
-// Charge credits server-side before a client-side render. Returns true if paid.
-export async function spendCredits(
-  reason: 'animate-video' | 'studio-render',
-  units: number,
-  notify: ImageAnimatorProps['notify'],
-  onOpenPricing?: () => void
-): Promise<boolean> {
-  try {
-    const res = await apiFetch('/api/credits/spend', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason, units }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      if (res.status === 402 && onOpenPricing) {
-        notify('info', data.error || 'Not enough credits.', 'Insufficient credits');
-        onOpenPricing();
-      } else {
-        notify('error', data.error || 'Payment failed.', 'Could not charge credits');
-      }
-      return false;
-    }
-    return true;
-  } catch (err: any) {
-    notify('error', err.message || 'Payment failed.', 'Could not charge credits');
-    return false;
-  }
-}
-
-// Return a recent client-render charge when the browser-side render fails before
-// producing a video. The server only refunds what was actually charged in the last
-// 10 minutes, so this is safe to call on genuine failures.
-export async function refundCredits(
-  reason: 'animate-video' | 'studio-render',
-  units: number,
-  notify: ImageAnimatorProps['notify']
-): Promise<void> {
-  try {
-    const res = await apiFetch('/api/credits/refund', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason, units }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      notify('info', `${data.refunded} credits were returned to your balance.`, 'Render failed — refunded');
-    }
-  } catch {
-    // refund failed silently; the ledger still shows the original charge
-  }
 }
 
 // Draw one animation frame. t is 0..1 progress through the clip.
@@ -104,8 +47,7 @@ export function drawFrame(
   ctx.drawImage(img, (W - dw) / 2 + dx, (H - dh) / 2 + dy, dw, dh);
 }
 
-export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPricing }) => {
-  const { refreshCredits } = useAuth();
+export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify }) => {
   const [images, setImages] = useState<Generation[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [selectedSrc, setSelectedSrc] = useState<string | null>(null);
@@ -207,10 +149,6 @@ export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPric
       return;
     }
     if (isRecording) return;
-    // Charge 5 credits before rendering.
-    const paid = await spendCredits('animate-video', 0, notify, onOpenPricing);
-    if (!paid) return;
-    refreshCredits().catch(() => {});
     const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
       ? 'video/webm;codecs=vp9'
       : 'video/webm';
@@ -228,7 +166,7 @@ export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPric
         setVideoUrl(url);
         setIsRecording(false);
         setRecordProgress(0);
-        notify('success', `Your ${durationSec}s video is ready (${ANIMATE_COST} credits used).`, 'Video created');
+        notify('success', `Your ${durationSec}s video is ready.`, 'Video created');
       };
       recorderRef.current = recorder;
       recorder.start(250);
@@ -251,8 +189,6 @@ export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPric
     } catch (err: any) {
       setIsRecording(false);
       notify('error', err.message || 'Recording failed in this browser.', 'Could not create video');
-      // Credits were already charged — return them since no video was produced.
-      refundCredits('animate-video', 0, notify).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording, motion, durationSec, aspect, notify]);
@@ -264,8 +200,7 @@ export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPric
       <div className="flex items-center gap-2 text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3">
         <Film className="w-4 h-4 shrink-0" />
         <span>
-          Turn any image into a video with cinematic motion — rendered right in your browser.
-          Only <strong>{ANIMATE_COST} credits</strong> per video.
+          Turn any image into a video with cinematic motion — rendered right in your browser, free.
         </span>
       </div>
 
@@ -391,7 +326,7 @@ export const ImageAnimator: React.FC<ImageAnimatorProps> = ({ notify, onOpenPric
             className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed font-semibold text-sm text-black"
           >
             {isRecording ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {isRecording ? 'Rendering…' : `Create ${durationSec}s Video (${ANIMATE_COST} credits)`}
+            {isRecording ? 'Rendering…' : `Create ${durationSec}s Video`}
           </button>
           {videoUrl && (
             <a

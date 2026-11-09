@@ -8,8 +8,6 @@ import {
   Tv,
   Music,
   ArrowRight,
-  Zap,
-  TrendingUp,
   FolderKanban,
   History,
   Lock
@@ -20,13 +18,11 @@ import { TabType } from './Sidebar';
 interface DashboardProps {
   onSelectTab: (tab: TabType) => void;
   onOpenCreateWithPreset: (preset: { prompt: string; style: string; aspectRatio: string }) => void;
-  onOpenPricing: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   onSelectTab,
-  onOpenCreateWithPreset,
-  onOpenPricing
+  onOpenCreateWithPreset
 }) => {
   const { user } = useAuth();
 
@@ -124,7 +120,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <p className="text-sm sm:text-base text-gray-400 leading-relaxed mb-6 font-light">
             Generate breathtaking images, anime sequences, and concept art powered by Google Gemini
-            3.1 Flash Image. Every generation is protected with automatic credit restoration.
+            3.1 Flash Image.
           </p>
 
           <div className="flex flex-wrap items-center gap-3">

@@ -56,7 +56,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, notify })
     try {
       if (isSignUp) {
         await signupWithEmail(email, password, displayName || email.split('@')[0]);
-        notify('success', 'Account created! 50 starter credits added.', 'Welcome to KANTHI AI');
+        notify('success', 'Account created! Welcome to KANTHI AI.', 'Welcome to KANTHI AI');
       } else {
         await loginWithEmail(email, password);
         notify('success', 'Signed in successfully', 'Welcome Back');
@@ -116,7 +116,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, notify })
           </h2>
           <p className="text-xs text-gray-400">
             {isSignUp
-              ? 'Join today and receive 50 complimentary generation credits.'
+              ? 'Join today and start creating for free.'
               : 'Sign in to access your models, projects, and saved visuals.'}
           </p>
         </div>

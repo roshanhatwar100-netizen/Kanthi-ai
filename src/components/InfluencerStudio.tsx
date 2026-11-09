@@ -4,12 +4,10 @@ import {
   Loader2, Download, RefreshCw, ChevronRight, Film
 } from 'lucide-react';
 import { apiFetch } from '../api';
-import { spendCredits, refundCredits, drawFrame, type MotionPreset } from './ImageAnimator';
-import { useAuth } from '../context/AuthContext';
+import { drawFrame, type MotionPreset } from './ImageAnimator';
 
 interface InfluencerStudioProps {
   notify: (type: 'success' | 'error' | 'info', message: string, title?: string) => void;
-  onOpenPricing?: () => void;
 }
 
 interface Character {
@@ -149,7 +147,6 @@ const SCRIPT_TEMPLATES = [
 type Step = 'character' | 'niche' | 'script' | 'voice' | 'video';
 
 export function InfluencerStudio({ notify }: InfluencerStudioProps) {
-  const { user, refreshCredits } = useAuth();
   const [step, setStep] = useState<Step>('character');
   const [gender, setGender] = useState<'girls' | 'boys'>('girls');
   const [selectedChar, setSelectedChar] = useState<Character | null>(null);
@@ -247,7 +244,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
     img.src = selectedChar.file;
   }, [step, selectedChar]);
 
-  // Make an actual video: animate the character photo in the browser (5 credits).
+  // Make an actual video: animate the character photo in the browser.
   const renderStudioVideo = async () => {
     if (!selectedChar || renderingVideo) return;
     const canvas = videoCanvasRef.current;
@@ -258,12 +255,6 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
     setRenderingVideo(true);
     setVideoProgress(0);
     setStudioVideoUrl(null);
-    const paid = await spendCredits('animate-video', 0, notify, onOpenPricing);
-    if (!paid) {
-      setRenderingVideo(false);
-      return;
-    }
-    refreshCredits().catch(() => {});
     try {
       const img = new Image();
       img.src = selectedChar.file;
@@ -285,7 +276,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
         setStudioVideoUrl(URL.createObjectURL(new Blob(chunks, { type: 'video/webm' })));
         setRenderingVideo(false);
         setVideoProgress(0);
-        notify('success', 'Video taiyaar hai! (5 credits lage)');
+        notify('success', 'Video taiyaar hai!');
       };
       recorder.start(250);
       const start = performance.now();
@@ -300,7 +291,6 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
     } catch (err: any) {
       setRenderingVideo(false);
       notify('error', 'Video nahi ban paya: ' + (err.message || 'browser error'));
-      refundCredits('animate-video', 0, notify).catch(() => {});
     }
   };
 
@@ -590,7 +580,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
           <h3 className="font-semibold text-center">🎬 Video Banao — Character Photo Se</h3>
           <p className="text-xs text-gray-400 text-center">
             Tumhare chune hue style ({VIDEO_STYLES.find(v => v.id === videoStyle)?.label}) me photo animate hoke
-            5-second ka vertical video banega. (5 credits)
+            5-second ka vertical video banega.
           </p>
           <canvas ref={videoCanvasRef} width={720} height={1280} className="w-48 mx-auto rounded-xl bg-black" />
           {renderingVideo ? (
@@ -609,7 +599,7 @@ export function InfluencerStudio({ notify }: InfluencerStudioProps) {
               <button
                 onClick={renderStudioVideo}
                 className="px-6 py-3 bg-purple-600 text-white rounded-full font-medium flex items-center gap-2 mx-auto"
-              ><Film size={16} /> Video Banao (5 credits)</button>
+              ><Film size={16} /> Video Banao</button>
             </div>
           )}
         </div>
