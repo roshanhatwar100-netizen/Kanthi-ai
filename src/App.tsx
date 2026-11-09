@@ -15,7 +15,6 @@ import { ProjectsView } from './components/ProjectsView';
 import { FavoritesView } from './components/FavoritesView';
 import { SettingsView } from './components/SettingsView';
 import { AdminDashboard } from './components/AdminDashboard';
-import { PricingModal } from './components/PricingModal';
 import { AuthModal } from './components/AuthModal';
 import { ToastContainer, ToastMessage } from './components/Toast';
 
@@ -25,7 +24,6 @@ export default function App() {
   const [isLandingMode, setIsLandingMode] = useState(false);
 
   // Modals
-  const [pricingOpen, setPricingOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
   // Preset transfer into ImageGenerator
@@ -93,12 +91,6 @@ export default function App() {
             setIsLandingMode(false);
             setCurrentTab('explore');
           }}
-          onOpenPricing={() => setPricingOpen(true)}
-        />
-        <PricingModal
-          isOpen={pricingOpen}
-          onClose={() => setPricingOpen(false)}
-          notify={notify}
         />
         <AuthModal
           isOpen={authOpen}
@@ -115,28 +107,14 @@ export default function App() {
       {/* Desktop Sidebar Navigation */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={tab => {
-          if (tab === 'pricing') {
-            setPricingOpen(true);
-          } else {
-            setCurrentTab(tab);
-          }
-        }}
-        onOpenPricing={() => setPricingOpen(true)}
+        onSelectTab={setCurrentTab}
       />
 
       {/* Main App Container */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
         <Navbar
           currentTab={currentTab}
-          onSelectTab={tab => {
-            if (tab === 'pricing') {
-              setPricingOpen(true);
-            } else {
-              setCurrentTab(tab);
-            }
-          }}
-          onOpenPricing={() => setPricingOpen(true)}
+          onSelectTab={setCurrentTab}
           onOpenAuth={() => setAuthOpen(true)}
         />
 
@@ -146,7 +124,6 @@ export default function App() {
             <Dashboard
               onSelectTab={setCurrentTab}
               onOpenCreateWithPreset={handleOpenCreateWithPreset}
-              onOpenPricing={() => setPricingOpen(true)}
             />
           )}
 
@@ -155,7 +132,6 @@ export default function App() {
               initialPrompt={presetPrompt}
               initialStyle={presetStyle}
               initialAspectRatio={presetAspectRatio}
-              onOpenPricing={() => setPricingOpen(true)}
               onOpenAuth={() => setAuthOpen(true)}
               notify={notify}
             />
@@ -164,7 +140,6 @@ export default function App() {
           {currentTab === 'video' && (
             <VideoGenerator
               initialPrompt={presetPrompt}
-              onOpenPricing={() => setPricingOpen(true)}
               onOpenAuth={() => setAuthOpen(true)}
               notify={notify}
             />
@@ -172,7 +147,6 @@ export default function App() {
 
           {currentTab === 'audio' && (
             <AudioGenerator
-              onOpenPricing={() => setPricingOpen(true)}
               onOpenAuth={() => setAuthOpen(true)}
               notify={notify}
             />
@@ -181,7 +155,6 @@ export default function App() {
           {currentTab === 'influencer' && (
             <InfluencerStudio
               notify={notify}
-              onOpenPricing={() => setPricingOpen(true)}
             />
           )}
 
@@ -212,7 +185,6 @@ export default function App() {
 
           {currentTab === 'settings' && (
             <SettingsView
-              onOpenPricing={() => setPricingOpen(true)}
               notify={notify}
             />
           )}
@@ -225,13 +197,6 @@ export default function App() {
         {/* Mobile Fixed Bottom Navigation */}
         <MobileNav currentTab={currentTab} onSelectTab={setCurrentTab} />
       </div>
-
-      {/* Pricing Modal */}
-      <PricingModal
-        isOpen={pricingOpen}
-        onClose={() => setPricingOpen(false)}
-        notify={notify}
-      />
 
       {/* Auth Modal */}
       <AuthModal
