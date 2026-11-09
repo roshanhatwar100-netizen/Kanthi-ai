@@ -1,31 +1,15 @@
 import type { Database } from 'firebase-admin/database';
 import { getRtdb } from './auth.js';
-import { SERVER_CONFIG } from './config.js';
 
 export interface UserDoc {
   uid: string;
   email: string;
   displayName: string;
   photoURL?: string;
-  credits: number;
-  plan: 'free' | 'creator' | 'pro';
   role: 'user' | 'admin';
   createdAt: string;
   updatedAt: string;
   suspended?: boolean;
-}
-
-export interface CreditTransactionDoc {
-  transactionId: string;
-  uid: string;
-  type: 'purchase' | 'generation' | 'refund' | 'bonus' | 'subscription';
-  amount: number;
-  balanceBefore: number;
-  balanceAfter: number;
-  reason: string;
-  generationId?: string;
-  paymentId?: string;
-  createdAt: string;
 }
 
 export interface GenerationDoc {
@@ -41,7 +25,6 @@ export interface GenerationDoc {
   mediaUrl?: string;
   duration?: string;
   audioVoice?: string;
-  creditsUsed: number;
   status: 'completed' | 'failed' | 'processing';
   createdAt: string;
   isPublic?: boolean;
@@ -70,18 +53,6 @@ export interface FavoriteDoc {
   id: string;
   uid: string;
   generationId: string;
-  createdAt: string;
-}
-
-export interface PaymentDoc {
-  paymentId: string;
-  uid: string;
-  razorpayOrderId: string;
-  razorpayPaymentId: string;
-  amount: number;
-  currency: string;
-  product: string;
-  status: 'success' | 'failed' | 'pending';
   createdAt: string;
 }
 
@@ -155,16 +126,11 @@ class DatabaseService {
     const userRef = this.ref(`users/${uid}`);
     const result = await userRef.transaction((current: UserDoc | null) => {
       if (current) return; // already exists — abort, keep existing doc
-      // Admins don't get the free welcome credits — 50 credits are for regular users only.
-      const isAdminAccount = SERVER_CONFIG.adminUids.includes(uid) || SERVER_CONFIG.adminEmails.includes(email.toLowerCase());
-      const credits = isAdminAccount ? 0 : SERVER_CONFIG.plans.free.monthlyCredits;
       const created: UserDoc = {
         uid,
         email,
         displayName: displayName || email.split('@')[0],
         photoURL: photoURL || `https://api.dicebear.com/7.x/shapes/svg?seed=${uid}`,
-        credits,
-        plan: 'free',
         role: 'user',
         createdAt: nowIso(),
         updatedAt: nowIso()
@@ -179,19 +145,9 @@ class DatabaseService {
       return existing;
     }
 
-    // New user created — write the email index and the welcome bonus transaction.
+    // New user created — write the email index.
     const created = result.snapshot?.val() as UserDoc;
     await this.ref(`usersByEmail/${encodeEmail(email)}`).set(uid);
-    if (created.credits > 0) {
-      await this.recordCreditTransaction({
-        uid,
-        type: 'bonus',
-        amount: created.credits,
-        balanceBefore: 0,
-        balanceAfter: created.credits,
-        reason: 'Welcome Starter Credits'
-      });
-    }
     return created;
   }
 
@@ -201,112 +157,6 @@ class DatabaseService {
     const updated: UserDoc = { ...user, ...updates, updatedAt: nowIso() };
     await this.setVal(`users/${uid}`, updated);
     return updated;
-  }
-
-  // Atomic credit reservation and deduction (single transaction on the user doc).
-  async reserveCredits(
-    uid: string,
-    cost: number,
-    reason: string
-  ): Promise<{ success: boolean; balanceBefore: number; balanceAfter: number; isAdminUnlimited?: boolean }> {
-    // Zero-cost operations (e.g. the admin exemption) need no reservation —
-    // skip the atomic transaction entirely so a 0 balance can never block them.
-    if (cost === 0) {
-      const user = await this.getUser(uid);
-      if (!user) throw new Error('User not found');
-      if (user.suspended) throw new Error('User account is suspended');
-      return { success: true, balanceBefore: user.credits, balanceAfter: user.credits };
-    }
-    const existingUser = await this.getUser(uid);
-    if (!existingUser) throw new Error('User not found');
-    if (existingUser.suspended) throw new Error('User account is suspended');
-
-    // NOTE: RTDB transactions proved unreliable in the serverless runtime
-    // (spurious aborts even with sufficient balance), so credit mutations use
-    // read-modify-write instead. At this app's scale the race window is negligible.
-    const balanceBefore = typeof existingUser.credits === 'number' ? existingUser.credits : 0;
-    if (balanceBefore < cost) {
-      return { success: false, balanceBefore, balanceAfter: balanceBefore };
-    }
-    const balanceAfter = balanceBefore - cost;
-    await this.setVal(`users/${uid}`, { ...existingUser, credits: balanceAfter, updatedAt: nowIso() });
-
-    await this.recordCreditTransaction({
-      uid,
-      type: 'generation',
-      amount: -cost,
-      balanceBefore,
-      balanceAfter,
-      reason
-    });
-    return { success: true, balanceBefore, balanceAfter };
-  }
-
-  // Restore credits if generation fails or gets blocked.
-  async restoreCredits(uid: string, amount: number, reason: string, generationId?: string): Promise<number> {
-    const user = await this.getUser(uid);
-    if (!user) throw new Error('User not found');
-
-    const balanceBefore = typeof user.credits === 'number' ? user.credits : 0;
-    const balanceAfter = balanceBefore + amount;
-    await this.setVal(`users/${uid}`, { ...user, credits: balanceAfter, updatedAt: nowIso() });
-    await this.recordCreditTransaction({
-      uid,
-      type: 'refund',
-      amount,
-      balanceBefore,
-      balanceAfter,
-      reason,
-      generationId
-    });
-    return balanceAfter;
-  }
-
-  // Credit purchasing and subscription awarding.
-  async addCredits(
-    uid: string,
-    amount: number,
-    reason: string,
-    paymentId?: string,
-    type: 'purchase' | 'subscription' | 'bonus' = 'purchase'
-  ): Promise<number> {
-    const user = await this.getUser(uid);
-    if (!user) throw new Error('User not found');
-
-    const balanceBefore = typeof user.credits === 'number' ? user.credits : 0;
-    const balanceAfter = balanceBefore + amount;
-    await this.setVal(`users/${uid}`, { ...user, credits: balanceAfter, updatedAt: nowIso() });
-    await this.recordCreditTransaction({
-      uid,
-      type,
-      amount,
-      balanceBefore,
-      balanceAfter,
-      reason,
-      paymentId
-    });
-    return balanceAfter;
-  }
-
-  async recordCreditTransaction(
-    tx: Omit<CreditTransactionDoc, 'transactionId' | 'createdAt'>
-  ): Promise<CreditTransactionDoc> {
-    const pushRef = this.ref(`creditTransactions/${tx.uid}`).push();
-    const transactionId = pushRef.key as string;
-    const fullTx: CreditTransactionDoc = {
-      transactionId,
-      createdAt: nowIso(),
-      ...tx
-    };
-    await pushRef.set(stripUndefined(fullTx));
-    return fullTx;
-  }
-
-  async getCreditTransactions(uid: string): Promise<CreditTransactionDoc[]> {
-    const all = await this.getVal<Record<string, CreditTransactionDoc>>(`creditTransactions/${uid}`);
-    return Object.values(all || {}).sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
   }
 
   // --- Generations ---
@@ -443,19 +293,6 @@ class DatabaseService {
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
-  // --- Payments ---
-
-  async recordPayment(payment: PaymentDoc): Promise<void> {
-    await this.setVal(`payments/${payment.paymentId}`, payment);
-    await this.ref(`paymentsByOrder/${payment.razorpayOrderId}`).set(payment.paymentId);
-  }
-
-  async getPaymentByOrderId(orderId: string): Promise<PaymentDoc | null> {
-    const paymentId = await this.getVal<string>(`paymentsByOrder/${orderId}`);
-    if (!paymentId) return null;
-    return this.getVal<PaymentDoc>(`payments/${paymentId}`);
-  }
-
   // --- Reports ---
 
   async createReport(uid: string, generationId: string, reason: string): Promise<ReportDoc> {
@@ -489,47 +326,24 @@ class DatabaseService {
   // --- Admin stats ---
 
   async getAdminStats() {
-    const [usersSnap, gensSnap, paysSnap, txSnap, reportsSnap] = await Promise.all([
+    const [usersSnap, gensSnap, reportsSnap] = await Promise.all([
       this.ref('users').get(),
       this.ref('generations').get(),
-      this.ref('payments').get(),
-      this.ref('creditTransactions').get(),
       this.ref('reports').get()
     ]);
 
     const allUsers = Object.values((usersSnap.val() || {}) as Record<string, UserDoc>);
     const allGenerations = Object.values((gensSnap.val() || {}) as Record<string, GenerationDoc>);
-    const allPayments = Object.values((paysSnap.val() || {}) as Record<string, PaymentDoc>);
-    // creditTransactions are nested per user: creditTransactions/{uid}/{txId}
-    const txRoot = (txSnap.val() || {}) as Record<string, Record<string, CreditTransactionDoc>>;
-    const allTransactions = Object.values(txRoot).flatMap(byUid => Object.values(byUid || {}));
 
     const totalUsers = allUsers.length;
-    const paidUsers = allUsers.filter(u => u.plan !== 'free').length;
     const totalGenerations = allGenerations.length;
     const failedGenerations = allGenerations.filter(g => g.status === 'failed').length;
-
-    const creditsConsumed = allTransactions
-      .filter(t => t.type === 'generation')
-      .reduce((acc, t) => acc + Math.abs(t.amount), 0);
-
-    const creditsSold = allTransactions
-      .filter(t => t.type === 'purchase' || t.type === 'subscription')
-      .reduce((acc, t) => acc + t.amount, 0);
-
-    const totalRevenue = allPayments
-      .filter(p => p.status === 'success')
-      .reduce((acc, p) => acc + p.amount, 0);
 
     const reportsVal = (reportsSnap.val() || {}) as Record<string, ReportDoc>;
 
     return {
       totalUsers,
       activeUsers: Math.max(1, Math.round(totalUsers * 0.8)),
-      paidUsers,
-      totalRevenue,
-      creditsSold,
-      creditsConsumed,
       totalGenerations,
       failedGenerations,
       reportsCount: Object.values(reportsVal).filter(r => r.status === 'pending').length

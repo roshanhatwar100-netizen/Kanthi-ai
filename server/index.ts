@@ -11,13 +11,6 @@ import { checkContentSafety } from './moderation.js';
 import { validateRealEmail } from './emailValidation.js';
 import { startVideoGeneration, getVideoOperation, extractVideoUri, downloadVideo, persistVideoToStorage, streamStoredVideo, deleteStoredVideo } from './video.js';
 import { generateAudioWithGemini } from './audio.js';
-import {
-  createRazorpayOrder,
-  getRazorpayOrder,
-  verifyPaymentSignature,
-  verifyWebhookSignature,
-  isRazorpayConfigured
-} from './razorpay.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +25,7 @@ export const app = express();
 
 // Enable CORS and high-limit JSON parser for images
 app.use(cors());
-app.use(express.json({ limit: '50mb', verify: (req, _res, buf) => { (req as any).rawBody = buf.toString('utf8'); } }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Middleware to extract user UID from headers or body
@@ -48,7 +41,6 @@ app.get('/api/health', (req, res) => {
     platform: 'KANTHI AI',
     timestamp: new Date().toISOString(),
     geminiConfigured: SERVER_CONFIG.hasGeminiKey,
-    razorpayConfigured: isRazorpayConfigured(),
   });
 });
 
@@ -62,11 +54,6 @@ app.get('/api/config', (req, res) => {
     appName: 'KANTHI AI',
     tagline: 'Turn imagination into creation.',
     hasGeminiKey: SERVER_CONFIG.hasGeminiKey,
-    hasRazorpayConfigured: isRazorpayConfigured(),
-    razorpayKeyId: isRazorpayConfigured() ? SERVER_CONFIG.razorpayKeyId : null,
-    creditCosts: SERVER_CONFIG.creditCosts,
-    plans: SERVER_CONFIG.plans,
-    creditPacks: SERVER_CONFIG.creditPacks,
     supportedModels: SERVER_CONFIG.supportedModels,
     country,
     isIndia: country === null ? true : country === 'IN',
@@ -76,28 +63,6 @@ app.get('/api/config', (req, res) => {
 app.get('/api/models', (req, res) => {
   res.json({ models: SERVER_CONFIG.supportedModels });
 });
-
-// Razorpay webhook for async reconciliation
-app.post('/api/payments/webhook', (req, res) => {
-  const signature = req.headers['x-razorpay-signature'] as string;
-  if (!signature) {
-    return res.status(400).json({ error: 'Missing x-razorpay-signature header' });
-  }
-
-  const rawBody = (req as any).rawBody as string | undefined;
-  if (!rawBody) return res.status(400).json({ error: 'Missing raw webhook body.' });
-  const isValid = verifyWebhookSignature(rawBody, signature);
-  if (!isValid) {
-    return res.status(400).json({ error: 'Invalid webhook signature' });
-  }
-
-  // Handle events like payment.captured, order.paid
-  const event = req.body.event;
-  console.log(`Razorpay webhook event received: ${event}`);
-  res.json({ status: 'ok' });
-});
-
-
 
 // All routes below this point require a verified Firebase ID token.
 app.use('/api', requireAuth);
@@ -121,122 +86,10 @@ app.post('/api/user/sync', async (req, res) => {
 
     let user = await db.getOrCreateUser(uid, email, displayName, photoURL);
     const isAdminAccount = SERVER_CONFIG.adminUids.includes(uid) || SERVER_CONFIG.adminEmails.includes(email.toLowerCase());
-    if (isAdminAccount) {
-      // Admins get zero-credit unlimited generation — the 50 free credits are for regular users only.
-      // Enforced on every sync so the balance can never drift back.
-      if (user.role !== 'admin' || user.plan !== 'pro' || user.credits !== 0) {
-        user = await db.updateUser(uid, { role: 'admin', plan: 'pro', credits: 0 });
-      }
+    if (isAdminAccount && user.role !== 'admin') {
+      user = await db.updateUser(uid, { role: 'admin' });
     }
     res.json({ user });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.get('/api/user/credits', async (req, res) => {
-  try {
-    const uid = getUserId(req);
-    if (uid === 'guest') {
-      return res.status(401).json({ error: 'Please sign in to view credits.' });
-    }
-    const user = await db.getUser(uid);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
-    const transactions = await db.getCreditTransactions(uid);
-    res.json({
-      credits: user.credits,
-      plan: user.plan,
-      role: user.role,
-      transactions: transactions.slice(0, 20)
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Spend credits for client-side features (free animator, studio renders).
-// Amount is validated server-side against an allowlist of reasons.
-app.post('/api/credits/spend', async (req, res) => {
-  try {
-    const uid = getUserId(req);
-    if (uid === 'guest') {
-      return res.status(401).json({ error: 'Please sign in.' });
-    }
-    const { reason, units } = req.body || {};
-    // Server-side price list — the client can only pick a reason, never a price.
-    const PRICES: Record<string, (units: number) => number> = {
-      'animate-video': () => 5,
-      'studio-render': (u) => Math.max(5, Math.ceil((Number(u) || 0) / 30) * 5),
-    };
-    const priced = PRICES[reason];
-    if (!priced) {
-      return res.status(400).json({ error: 'Unknown purchase reason.' });
-    }
-    const cost = priced(Number(units) || 0);
-    if (!Number.isFinite(cost) || cost <= 0 || cost > 5000) {
-      return res.status(400).json({ error: 'Invalid amount.' });
-    }
-    let reservation;
-    try {
-      reservation = await db.reserveCredits(uid, cost, `Client render: ${reason}`);
-    } catch (err: any) {
-      return res.status(500).json({ error: `Could not process payment: ${err.message}` });
-    }
-    if (!reservation.success) {
-      return res.status(402).json({
-        error: `Insufficient credits. This requires ${cost} credits, but you have ${reservation.balanceBefore}.`,
-        requiredCredits: cost,
-        currentBalance: reservation.balanceBefore
-      });
-    }
-    return res.json({ success: true, cost, creditsRemaining: reservation.balanceAfter });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Refund a client-render spend when the browser-side render fails before producing a video.
-// Abuse-resistant: only refunds the net un-refunded spend on the same reason from the last
-// 10 minutes, so a client can never mint free credits. Clients call this only when their
-// local render throws (MediaRecorder / captureStream unsupported or failing mid-render).
-app.post('/api/credits/refund', async (req, res) => {
-  try {
-    const uid = getUserId(req);
-    if (uid === 'guest') {
-      return res.status(401).json({ error: 'Please sign in.' });
-    }
-    const { reason, units } = req.body || {};
-    // Same server-side price list as /api/credits/spend — the client never sets a price.
-    const PRICES: Record<string, (units: number) => number> = {
-      'animate-video': () => 5,
-      'studio-render': (u) => Math.max(5, Math.ceil((Number(u) || 0) / 30) * 5),
-    };
-    const priced = PRICES[reason];
-    if (!priced) {
-      return res.status(400).json({ error: 'Unknown refund reason.' });
-    }
-    const cost = priced(Number(units) || 0);
-    if (!Number.isFinite(cost) || cost <= 0 || cost > 5000) {
-      return res.status(400).json({ error: 'Invalid amount.' });
-    }
-    const txs = await db.getCreditTransactions(uid); // newest first
-    const cutoff = Date.now() - 10 * 60 * 1000;
-    let netSpent = 0;
-    for (const t of txs) {
-      const ts = new Date(t.createdAt || 0).getTime();
-      if (!Number.isFinite(ts) || ts < cutoff) break;
-      if (t.reason === `Client render: ${reason}`) {
-        if (t.type === 'generation') netSpent += -t.amount; // spend amounts are negative
-        else if (t.type === 'refund') netSpent -= t.amount; // refund amounts are positive
-      }
-    }
-    if (netSpent < cost) {
-      return res.status(400).json({ error: 'No matching recent charge to refund.' });
-    }
-    const balanceAfter = await db.restoreCredits(uid, cost, `Refund: client render failed (${reason})`);
-    return res.json({ success: true, refunded: cost, credits: balanceAfter });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -278,7 +131,7 @@ app.post('/api/enhance-prompt', async (req, res) => {
   }
 });
 
-// --- IMAGE GENERATION (ATOMIC CREDIT ACCOUNTING & REFUNDS) ---
+// --- IMAGE GENERATION ---
 
 app.post('/api/generate/image', async (req, res) => {
   const uid = getUserId(req);
@@ -308,42 +161,16 @@ app.post('/api/generate/image', async (req, res) => {
     });
   }
 
-  // 2. Calculate credit cost server-side (Admin Exemption: 0 cost)
-  // 3. Atomically reserve credits
-  let user: Awaited<ReturnType<typeof db.getUser>>;
-  let cost: number;
-  let reservation: Awaited<ReturnType<typeof db.reserveCredits>>;
-  try {
-    user = await db.getUser(uid);
-    const isAdmin = user?.role === 'admin';
-    cost = isAdmin ? 0 : (SERVER_CONFIG.creditCosts[resolution] || SERVER_CONFIG.creditCosts['1K'] || 5);
-    reservation = await db.reserveCredits(
-      uid,
-      cost,
-      `Generation: ${resolution} ${aspectRatio} (${model.slice(0, 15)})`
-    );
-  } catch (err: any) {
-    return res.status(500).json({ error: `Could not start generation: ${err.message || 'service unavailable'}` });
-  }
-
-  if (!reservation.success) {
-    return res.status(402).json({
-      error: `Insufficient credits. This generation requires ${cost} credits, but you have ${reservation.balanceBefore}.`,
-      requiredCredits: cost,
-      currentBalance: reservation.balanceBefore
-    });
-  }
+  // 2. Load the user (for the author name on the generation record)
+  const user = await db.getUser(uid);
 
   const generationId = `gen_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
   try {
-    // 4. Verify API Key
+    // 3. Verify API Key
     if (!SERVER_CONFIG.hasGeminiKey) {
-      // Refund reserved credits immediately
-      await db.restoreCredits(uid, cost, 'Refund: Gemini API key not configured', generationId);
       return res.status(503).json({
-        error: 'Gemini API key is not configured on the server. Your credits were restored.',
-        creditsRestored: cost
+        error: 'Gemini API key is not configured on the server.'
       });
     }
 
@@ -368,7 +195,6 @@ app.post('/api/generate/image', async (req, res) => {
       imageUrl: result.imageUrl,
       mediaType: 'image' as const,
       mediaUrl: result.imageUrl,
-      creditsUsed: cost,
       status: 'completed' as const,
       createdAt: new Date().toISOString(),
       isPublic: false,
@@ -380,28 +206,14 @@ app.post('/api/generate/image', async (req, res) => {
 
     await db.saveGeneration(genDoc);
 
-    const updatedUser = await db.getUser(uid);
-
     return res.json({
       success: true,
-      generation: genDoc,
-      creditsRemaining: updatedUser?.credits ?? 0,
-      cost
+      generation: genDoc
     });
   } catch (err: any) {
     console.error('Image generation error:', err);
-    // 7. Guaranteed credit restoration on failure
-    const newBalance = await db.restoreCredits(
-      uid,
-      cost,
-      `Refund: Generation failed (${err.message?.slice(0, 40) || 'unknown error'})`,
-      generationId
-    );
-
     return res.status(500).json({
-      error: `Generation failed: ${err.message || 'Service temporarily unavailable'}. Your ${cost} credits were restored.`,
-      creditsRestored: cost,
-      currentBalance: newBalance
+      error: `Generation failed: ${err.message || 'Service temporarily unavailable'}.`
     });
   }
 });
@@ -432,25 +244,11 @@ app.post('/api/generate/video', async (req, res) => {
   const safety = checkContentSafety(prompt, negativePrompt);
   if (safety.status === 'blocked') return res.status(400).json({ error: `Generation blocked: ${safety.reason}`, moderation: safety });
 
-  const durationCostMap: Record<string, number> = { '4s': 60, '6s': 75, '8s': 90 };
-  if (!durationCostMap[duration]) return res.status(400).json({ error: 'Veo 3.1 supports 4s, 6s, or 8s generations.' });
+  const validDurations = ['4s', '6s', '8s'];
+  if (!validDurations.includes(duration)) return res.status(400).json({ error: 'Veo 3.1 supports 4s, 6s, or 8s generations.' });
   if (aspectRatio !== '16:9' && aspectRatio !== '9:16') return res.status(400).json({ error: 'Veo 3.1 supports 16:9 and 9:16 video.' });
 
-  let user: Awaited<ReturnType<typeof db.getUser>>;
-  let cost: number;
-  let reservation: Awaited<ReturnType<typeof db.reserveCredits>>;
-  try {
-    user = await db.getUser(uid);
-    const isAdmin = user?.role === 'admin';
-    cost = isAdmin ? 0 : durationCostMap[duration];
-    reservation = await db.reserveCredits(uid, cost, `Video Generation: ${duration} ${aspectRatio} (${model.slice(0, 15)})`);
-  } catch (err: any) {
-    return res.status(500).json({ error: `Could not start generation: ${err.message || 'service unavailable'}` });
-  }
-  if (!reservation.success) return res.status(402).json({
-    error: `Insufficient credits. Video generation requires ${cost} credits, but you have ${reservation.balanceBefore}.`,
-    requiredCredits: cost, currentBalance: reservation.balanceBefore
-  });
+  const user = await db.getUser(uid);
 
   const generationId = `vid_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   try {
@@ -463,17 +261,15 @@ app.post('/api/generate/video', async (req, res) => {
       generationId, uid, prompt: prompt.trim(), negativePrompt: negativePrompt?.trim(),
       model: operation.modelUsed, aspectRatio, resolution: 'Veo 3.1',
       imageUrl: '', mediaType: 'video' as const, mediaUrl: undefined,
-      duration, creditsUsed: cost, status: 'processing' as const,
+      duration, status: 'processing' as const,
       createdAt: new Date().toISOString(), isPublic: false, likes: 0, likedBy: [],
       authorName: user?.displayName || 'Creator', projectId: projectId || undefined,
       providerOperationName: operation.operationName
     };
     await db.saveGeneration(genDoc);
-    const updatedUser = await db.getUser(uid);
-    return res.status(202).json({ success: true, generation: genDoc, creditsRemaining: updatedUser?.credits ?? 0, cost });
+    return res.status(202).json({ success: true, generation: genDoc });
   } catch (err: any) {
-    const newBalance = await db.restoreCredits(uid, cost, `Refund: Video generation failed (${err.message?.slice(0, 80) || 'unknown error'})`, generationId);
-    return res.status(500).json({ error: `Could not start video generation: ${err.message || 'service unavailable'}. Credits restored.`, creditsRestored: cost, currentBalance: newBalance });
+    return res.status(500).json({ error: `Could not start video generation: ${err.message || 'service unavailable'}.` });
   }
 });
 
@@ -490,12 +286,10 @@ app.get('/api/generate/video/:id', async (req, res) => {
     const operation = await getVideoOperation(generation.providerOperationName);
     if (!operation.done) return res.json({ success: true, status: 'processing', generation });
     if (operation.error) {
-      const user = await db.getUser(uid);
       if (generation.status === 'processing') {
-        const newBalance = await db.restoreCredits(uid, generation.creditsUsed, `Refund: Video generation failed (${String(operation.error.message || 'Veo error').slice(0, 80)})`, generation.generationId);
         const failed = { ...generation, status: 'failed' as const, providerOperationName: undefined };
         await db.saveGeneration(failed);
-        return res.json({ success: false, status: 'failed', generation: failed, creditsRestored: generation.creditsUsed, currentBalance: newBalance, error: operation.error.message || 'Veo generation failed.' });
+        return res.json({ success: false, status: 'failed', generation: failed, error: operation.error.message || 'Veo generation failed.' });
       }
       return res.json({ success: false, status: 'failed', generation, error: operation.error.message || 'Veo generation failed.' });
     }
@@ -576,29 +370,7 @@ app.post('/api/generate/audio', async (req, res) => {
     });
   }
 
-  let user: Awaited<ReturnType<typeof db.getUser>>;
-  let cost: number;
-  let reservation: Awaited<ReturnType<typeof db.reserveCredits>>;
-  try {
-    user = await db.getUser(uid);
-    const isAdmin = user?.role === 'admin';
-    cost = isAdmin ? 0 : 8;
-    reservation = await db.reserveCredits(
-      uid,
-      cost,
-      `Audio Generation: ${type} (${type === 'music' ? genre : voice})`
-    );
-  } catch (err: any) {
-    return res.status(500).json({ error: `Could not start generation: ${err.message || 'service unavailable'}` });
-  }
-
-  if (!reservation.success) {
-    return res.status(402).json({
-      error: `Insufficient credits. Audio generation requires ${cost} credits, but you have ${reservation.balanceBefore}.`,
-      requiredCredits: cost,
-      currentBalance: reservation.balanceBefore
-    });
-  }
+  const user = await db.getUser(uid);
 
   const generationId = `aud_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
@@ -622,7 +394,6 @@ app.post('/api/generate/audio', async (req, res) => {
       mediaUrl: result.audioUrl,
       duration: `${result.durationSeconds}s`,
       audioVoice: result.voiceOrGenre,
-      creditsUsed: cost,
       status: 'completed' as const,
       createdAt: new Date().toISOString(),
       isPublic: false,
@@ -633,25 +404,14 @@ app.post('/api/generate/audio', async (req, res) => {
     };
 
     await db.saveGeneration(genDoc);
-    const updatedUser = await db.getUser(uid);
 
     return res.json({
       success: true,
-      generation: genDoc,
-      creditsRemaining: updatedUser?.credits ?? 0,
-      cost
+      generation: genDoc
     });
   } catch (err: any) {
-    const newBalance = await db.restoreCredits(
-      uid,
-      cost,
-      `Refund: Audio generation failed (${err.message?.slice(0, 40) || 'unknown error'})`,
-      generationId
-    );
     return res.status(500).json({
-      error: `Audio generation failed: ${err.message || 'Service temporarily unavailable'}. Credits restored.`,
-      creditsRestored: cost,
-      currentBalance: newBalance
+      error: `Audio generation failed: ${err.message || 'Service temporarily unavailable'}.`
     });
   }
 });
@@ -810,153 +570,6 @@ app.post('/api/favorites', async (req, res) => {
   }
 });
 
-// --- RAZORPAY PAYMENTS & SUBSCRIPTIONS ---
-
-app.post('/api/payments/create-order', async (req, res) => {
-  try {
-    const uid = getUserId(req);
-    if (uid === 'guest') {
-      return res.status(401).json({ error: 'Please sign in to make purchases.' });
-    }
-
-    if (!isRazorpayConfigured()) {
-      return res.status(503).json({
-        error: 'Payments are not configured yet. Configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to accept live payments.',
-        configured: false
-      });
-    }
-
-    const { productId, type } = req.body; // type: 'pack' | 'subscription'
-    if (!productId || !type) {
-      return res.status(400).json({ error: 'productId and type are required.' });
-    }
-
-    const orderData = await createRazorpayOrder({ productId, type, uid });
-    res.json(orderData);
-  } catch (err: any) {
-    console.error('Order creation error:', err);
-    res.status(500).json({ error: err.message || 'Failed to create payment order.' });
-  }
-});
-
-app.post('/api/payments/verify', async (req, res) => {
-  try {
-    const uid = getUserId(req);
-    if (uid === 'guest') {
-      return res.status(401).json({ error: 'Please sign in.' });
-    }
-
-    if (!isRazorpayConfigured()) {
-      return res.status(503).json({ error: 'Payments are not configured yet.' });
-    }
-
-    const {
-      razorpayOrderId,
-      razorpayPaymentId,
-      razorpaySignature,
-      productId,
-      type
-    } = req.body;
-
-    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
-      return res.status(400).json({ error: 'Missing payment signature verification parameters.' });
-    }
-
-    // 1. Prevent duplicate crediting
-    const existingPayment = await db.getPaymentByOrderId(razorpayOrderId);
-    if (existingPayment && existingPayment.status === 'success') {
-      return res.status(400).json({ error: 'Payment already processed.' });
-    }
-
-    // 2. Confirm the Razorpay order itself matches the authenticated user and requested product.
-    const order = await getRazorpayOrder(razorpayOrderId);
-    const expectedUid = String(order?.notes?.uid || '');
-    const expectedProduct = String(order?.notes?.productId || '');
-    const expectedType = String(order?.notes?.type || '');
-    if (expectedUid !== uid || expectedProduct !== String(productId || '') || expectedType !== String(type || '')) {
-      return res.status(400).json({ error: 'Payment order details do not match this account or product.' });
-    }
-
-    // 3. Cryptographic signature check
-    const isValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
-    if (!isValid) {
-      await db.recordPayment({
-        paymentId: `pay_${Date.now()}`,
-        uid,
-        razorpayOrderId,
-        razorpayPaymentId,
-        amount: 0,
-        currency: 'INR',
-        product: productId || 'unknown',
-        status: 'failed',
-        createdAt: new Date().toISOString()
-      });
-      return res.status(400).json({ error: 'Payment verification failed. Invalid signature.' });
-    }
-
-    // 4. Process credits / plan upgrade server-side
-    let creditsToAdd = 0;
-    let planToUpgrade: 'creator' | 'pro' | null = null;
-    let amountPaidINR = 0;
-
-    if (type === 'pack') {
-      const pack = SERVER_CONFIG.creditPacks[productId as keyof typeof SERVER_CONFIG.creditPacks];
-      if (pack) {
-        creditsToAdd = pack.credits;
-        amountPaidINR = pack.priceINR;
-      }
-    } else if (type === 'subscription') {
-      if (productId === 'sub_creator') {
-        planToUpgrade = 'creator';
-        creditsToAdd = SERVER_CONFIG.plans.creator.monthlyCredits;
-        amountPaidINR = SERVER_CONFIG.plans.creator.priceINR;
-      } else if (productId === 'sub_pro') {
-        planToUpgrade = 'pro';
-        creditsToAdd = SERVER_CONFIG.plans.pro.monthlyCredits;
-        amountPaidINR = SERVER_CONFIG.plans.pro.priceINR;
-      }
-    }
-
-    const paymentDocId = `pay_${Date.now()}`;
-    await db.recordPayment({
-      paymentId: paymentDocId,
-      uid,
-      razorpayOrderId,
-      razorpayPaymentId,
-      amount: amountPaidINR,
-      currency: 'INR',
-      product: productId,
-      status: 'success',
-      createdAt: new Date().toISOString()
-    });
-
-    if (planToUpgrade) {
-      await db.updateUser(uid, { plan: planToUpgrade });
-    }
-
-    const newCredits = await db.addCredits(
-      uid,
-      creditsToAdd,
-      `Payment: ${productId} (${razorpayPaymentId})`,
-      paymentDocId,
-      type === 'subscription' ? 'subscription' : 'purchase'
-    );
-
-    const updatedUser = await db.getUser(uid);
-
-    res.json({
-      success: true,
-      message: 'Payment verified and credits updated successfully!',
-      user: updatedUser,
-      creditsAdded: creditsToAdd,
-      newBalance: newCredits
-    });
-  } catch (err: any) {
-    console.error('Payment verification error:', err);
-    res.status(500).json({ error: err.message || 'Payment verification failed.' });
-  }
-});
-
 // --- ADMIN DASHBOARD & CONTROLS ---
 
 const verifyAdmin = requireAdmin;
@@ -974,35 +587,6 @@ app.get('/api/admin/users', verifyAdmin, async (req, res) => {
   try {
     const users = await db.getAllUsers();
     res.json({ users });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admin/users/:uid/credits', verifyAdmin, async (req, res) => {
-  try {
-    const uid = req.params.uid as string;
-    const { amount, reason = 'Admin Adjustment' } = req.body;
-    if (typeof amount !== 'number') {
-      return res.status(400).json({ error: 'Amount must be a number.' });
-    }
-    const newBalance = await db.addCredits(uid, amount, reason, undefined, 'bonus');
-    const updatedUser = await db.getUser(uid);
-    res.json({ success: true, user: updatedUser, balance: newBalance });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/admin/users/:uid/plan', verifyAdmin, async (req, res) => {
-  try {
-    const uid = req.params.uid as string;
-    const { plan } = req.body;
-    if (!['free', 'creator', 'pro'].includes(plan)) {
-      return res.status(400).json({ error: 'Invalid plan.' });
-    }
-    const updatedUser = await db.updateUser(uid, { plan });
-    res.json({ success: true, user: updatedUser });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -1067,7 +651,6 @@ async function startServer() {
   app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 KANTHI AI fullstack platform running on http://0.0.0.0:${port}`);
     console.log(`✨ Gemini AI: ${SERVER_CONFIG.hasGeminiKey ? 'Active & Ready' : 'Key missing (configure GEMINI_API_KEY)'}`);
-    console.log(`💳 Razorpay: ${isRazorpayConfigured() ? 'Active & Ready' : 'Key missing (configure RAZORPAY_KEY_ID & RAZORPAY_KEY_SECRET)'}`);
   });
 }
 
