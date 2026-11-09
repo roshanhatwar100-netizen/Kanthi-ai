@@ -10,8 +10,7 @@ import type { Request, Response } from 'express';
 import { app } from '../dist-server/index.js';
 
 // Disable Vercel's built-in body parser. The Express app registers its own
-// express.json() middleware with a `verify` hook that captures the raw
-// request body — required for Razorpay webhook signature verification.
+// express.json() middleware, so the raw request stream must reach it intact.
 // If Vercel pre-parsed the body, the raw stream would already be consumed.
 export const config = {
   api: { bodyParser: false },
